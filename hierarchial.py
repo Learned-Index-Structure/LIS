@@ -10,7 +10,7 @@ import datetime
 import math
 
 
-path = 'utils/newData0.1.csv'
+path = 'utils/newData1.csv'
 
 def import_data(path):
 
@@ -77,6 +77,7 @@ def train(keys, values , stages, threshold):
 
                 predictions = np.floor(((model[i][j].predict(tmp_keys[i][j]))*stages[i+1])/n)
                 predictions = predictions.astype('int') 
+                predictions[predictions >= stages[i+1]] = stages[i+1]-1
 
                 for p in range(len(tmp_keys[i][j])): 
                     layer_keys[predictions[p][0]].append(tmp_keys[i][j][p][0])
@@ -113,7 +114,7 @@ def test_model(keys, values, stages, model):
                     diff = end - start
                     print("key=%s, Original=%s, Predicted=%s, Time=%s" % (keys[ind], values[ind], pred, diff))
 
-stages = [1,5, 10]
+stages = [1,100]
 threshold = 0
 
 all_keys, all_values = import_data(path)
