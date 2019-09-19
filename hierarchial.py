@@ -78,6 +78,7 @@ def train(keys, values , stages, threshold):
                 predictions = np.floor(((model[i][j].predict(tmp_keys[i][j]))*stages[i+1])/n)
                 predictions = predictions.astype('int') 
                 predictions[predictions >= stages[i+1]] = stages[i+1]-1
+                predictions[predictions < 0] = 0
 
                 for p in range(len(tmp_keys[i][j])): 
                     layer_keys[predictions[p][0]].append(tmp_keys[i][j][p][0])
