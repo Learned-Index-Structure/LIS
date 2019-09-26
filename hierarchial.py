@@ -10,7 +10,7 @@ import datetime
 import math
 
 
-path = 'utils/newData1.csv'
+path = 'utils/newData0.1.csv'
 
 def import_data(path):
 
@@ -25,15 +25,21 @@ def import_data(path):
     print(value.shape)
     return key, value
 
-def train_individual_model(keys, values, epochs=100, batch_size=50,  verbose=0, validation_split=0.2):
-
-    model = Sequential()
-    model.add(Dense(32, activation=tf.nn.relu, input_shape=(1,)))
-    # model.add(Dense(32, activation=tf.nn.relu))
-    model.add(Dense(1))
-    model.compile(optimizer='adam', loss='mse', metrics=['mse' , 'mse'])
-    model.fit(keys, values , epochs=epochs, batch_size=batch_size,  verbose=verbose, validation_split=validation_split)
-
+def train_individual_model(layerNumber, keys, values, epochs=100, batch_size=10,  verbose=0, validation_split=0.1):
+    if layerNumber == 0: 
+        model = Sequential()
+        model.add(Dense(32, activation=tf.nn.relu, input_shape=(1,)))
+        #model.add(Dense(32, activation=tf.nn.relu))
+        model.add(Dense(1))
+        model.compile(optimizer='RMSprop', loss='mse', metrics=['mse' , 'mse'])
+        model.fit(keys, values , epochs=epochs, batch_size=batch_size,  verbose=verbose, validation_split=validation_split)
+    else:
+        model = Sequential()
+        # model.add(Dense(32, activation=tf.nn.relu, input_shape=(1,)))
+        #model.add(Dense(32, activation=tf.nn.relu))
+        model.add(Dense(1))
+        model.compile(optimizer='RMSprop', loss='mse', metrics=['mse' , 'mse'])
+        model.fit(keys, values , epochs=200, batch_size=1,  verbose=verbose, validation_split=0.2)
     return model
 
 def train(keys, values , stages, threshold):
@@ -72,7 +78,7 @@ def train(keys, values , stages, threshold):
 
         for j in range(stages[i]):
             print("Training for layer - " + str(i+1) + ", and model - " + str(j+1))
-            model[i].append(train_individual_model(tmp_keys[i][j] , tmp_values[i][j]))
+            model[i].append(train_individual_model(i, tmp_keys[i][j] , tmp_values[i][j]))
             if (i < m-1):
 
                 predictions = np.floor(((model[i][j].predict(tmp_keys[i][j]))*stages[i+1])/n)
@@ -115,7 +121,7 @@ def test_model(keys, values, stages, model):
                     diff = end - start
                     print("key=%s, Original=%s, Predicted=%s, Time=%s" % (keys[ind], values[ind], pred, diff))
 
-stages = [1,100]
+stages = [1,10]
 threshold = 0
 
 all_keys, all_values = import_data(path)
