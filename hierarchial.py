@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import os
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
@@ -12,7 +10,7 @@ import datetime
 import math
 
 
-path = 'utils/newData0.1.csv'
+path = 'data/newData0.1.csv'
 
 def import_data(path):
 
@@ -31,7 +29,7 @@ def train_individual_model(layerNumber, keys, values, epochs=100, batch_size=10,
     if layerNumber == 0: 
         model = Sequential()
         model.add(Dense(32, activation=tf.nn.relu, input_shape=(1,)))
-        #model.add(Dense(32, activation=tf.nn.relu))
+        model.add(Dense(32, activation=tf.nn.relu))
         model.add(Dense(1))
         model.compile(optimizer='RMSprop', loss='mse', metrics=['mse' , 'mse'])
         model.fit(keys, values , epochs=epochs, batch_size=batch_size,  verbose=verbose, validation_split=validation_split)
@@ -41,7 +39,7 @@ def train_individual_model(layerNumber, keys, values, epochs=100, batch_size=10,
         #model.add(Dense(32, activation=tf.nn.relu))
         model.add(Dense(1))
         model.compile(optimizer='RMSprop', loss='mse', metrics=['mse' , 'mse'])
-        model.fit(keys, values , epochs=200, batch_size=1,  verbose=verbose, validation_split=0.2)
+        model.fit(keys, values , epochs=200, batch_size=5,  verbose=verbose, validation_split=0.2)
     return model
 
 def train(keys, values , stages, threshold):
@@ -80,7 +78,10 @@ def train(keys, values , stages, threshold):
 
         for j in range(stages[i]):
             print("Training for layer - " + str(i+1) + ", and model - " + str(j+1))
+            start_train = datetime.datetime.now()
             model[i].append(train_individual_model(i, tmp_keys[i][j] , tmp_values[i][j]))
+            end_train = datetime.datetime.now()
+            print("Training this model took = " + str(end_train - start_train) + '\n')
             if (i < m-1):
 
                 predictions = np.floor(((model[i][j].predict(tmp_keys[i][j]))*stages[i+1])/n)
@@ -108,8 +109,12 @@ def test_model(keys, values, stages, model):
     m = len(stages)
     n = len(keys)
 
+    toterror = 0
+    t = 0
+
     for ind in range(len(keys)):
         if(ind % int((len(keys)/20)))==0:
+            t+=1
             start = datetime.datetime.now()
             model_number = 0
             for i in range(m):
@@ -119,9 +124,13 @@ def test_model(keys, values, stages, model):
                     model_number = model_number[0][0]
                 else:
                     pred = model[i][model_number].predict(keys[ind])
+                    toterror += abs(values[ind] - pred)
                     end = datetime.datetime.now()
                     diff = end - start
                     print("key=%s, Original=%s, Predicted=%s, Time=%s" % (keys[ind], values[ind], pred, diff))
+
+    print("\nTotal error in the prediction = " + str(toterror))
+    print("Average error = " + str(toterror/t))
 
 stages = [1,10]
 threshold = 0
