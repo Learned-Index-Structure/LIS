@@ -12,7 +12,7 @@ import math
 from concurrent.futures import ThreadPoolExecutor
 
 
-path = 'data/newData0.1.csv'
+path = 'data/sample.txt'
 
 def import_data(path):
 
@@ -27,10 +27,10 @@ def import_data(path):
     print(value.shape)
     return key, value
 
-def train_individual_model(layerNumber, modelNumber, keys, values, epochs=100, batch_size=10,  verbose=0, validation_split=0.1):
+def train_individual_model(layerNumber, modelNumber, keys, values, epochs=100, batch_size=32,  verbose=0, validation_split=0.1):
     print("Training model(" + str(layerNumber) + ", " + str(modelNumber) + ")")
     #TODO: create sessions equal to max threads in the thread pool
-    sess = tf.Session()
+    sess = tf.compat.v1.Session()
     with sess.as_default():
         if layerNumber == 0:
             model = Sequential()
@@ -45,7 +45,7 @@ def train_individual_model(layerNumber, modelNumber, keys, values, epochs=100, b
             #model.add(Dense(32, activation=tf.nn.relu))
             model.add(Dense(1))
             model.compile(optimizer='RMSprop', loss='mse', metrics=['mse' , 'mse'])
-            model.fit(keys, values , epochs=200, batch_size=5,  verbose=verbose, validation_split=0.2)
+            model.fit(keys, values , epochs=200, batch_size=8,  verbose=verbose, validation_split=0.2)
 
 
     # model._make_predict_function()
@@ -97,7 +97,10 @@ def train(keys, values , stages, threshold):
             if i > 0:
                 futures.append(executor.submit(train_individual_model, i, j, tmp_keys[i][j] , tmp_values[i][j]))
             else:
+                start_train = datetime.datetime.now()
                 model[i][j],graphs[i][j] = train_individual_model(i, j, tmp_keys[i][j] , tmp_values[i][j])
+                end_train = datetime.datetime.now()
+                print("Model for layer 0 trained. Time taken = " + str(end_train - start_train))
 
             if (i < m-1):
                 with graphs[i][j][0].as_default():
