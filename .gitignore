@@ -1,1 +1,4 @@
 .vscode/
+inference/out
+data/
+env/
