@@ -53,6 +53,7 @@ def train_individual_model(layerNumber, modelNumber, keys, values, epochs=100, b
     return (model, (sess, tf.compat.v1.get_default_graph()))
 
 def train(keys, values , stages, threshold):
+    tf.debugging.set_log_device_placement(True)
     model = []
     #TODO: change variable name
     graphs = []
@@ -70,7 +71,7 @@ def train(keys, values , stages, threshold):
     tmp_values[0].append([])
     tmp_values[0][0] = values
 
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=1)
 
     for i in range(m):
 

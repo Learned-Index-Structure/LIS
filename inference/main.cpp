@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdlib>
 
+using namespace std;
+
 template<size_t rows, size_t mid, size_t cols>
 void mm_normal(double (&A)[rows][mid], double (&B)[mid][cols], double (&C)[rows][cols]) {
     for (int z = 0; z < rows; ++z) {
@@ -67,19 +69,28 @@ void eval() {
 
     double pred_layer_1[1][1] = {{0.0}};
 
-    unsigned long long tstart = __rdtsc();
+    // unsigned long long tstart = __rdtsc();
     mm_normal(key, hidden_layer_1, out_1);
     mm_normal(out_1, hidden_layer_2, pred_layer_1);
     int pred = pred_layer_1[0][0] * models / N;
 
     double value = pred * lr_wt[0] + lr_wt[1];
-    unsigned long long tend = __rdtsc();
+    // unsigned long long tend = __rdtsc();
 
     std::cout << "Key, Value: " << key[0][0] << ", " << value << std::endl;
-    std::cout << "Time: " << (tend - tstart) * 0.36873156342 << std::endl; //0.36873156342 = 1 / clock_speed
+    // std::cout << "Time: " << (tend - tstart) * 0.36873156342 << std::endl; //0.36873156342 = 1 / clock_speed
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     eval();
+
+    if (argc != 1) {
+        cout<<"Usage:"<<endl;
+        cout<<"./infer [first layer weights file]"<<endl;
+        exit(0);
+    }
+
+    string firstLayerWeights = argv[1];
+    
     return 0;
 }
