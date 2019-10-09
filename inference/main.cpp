@@ -1,8 +1,11 @@
 #include <iostream>
 #include <cstdlib>
 #include <chrono>
+#include <fstream>
+#include <string>
 
 using namespace std;
+
 typedef chrono::high_resolution_clock Clock;
 
 template<size_t rows, size_t mid, size_t cols>
@@ -105,7 +108,7 @@ void eval() {
 }
 
 int main(int argc, char *argv[]) {
-    eval();
+    // eval();
 
     if (argc != 1) {
         cout << "Usage:" << endl;
@@ -113,6 +116,25 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-//    string firstLayerWeights = argv[1];
+    string firstLayerWeightsFile = argv[1];
+    ifstream firstLayerWeightsStream(firstLayerWeightsFile);
+    //n: number of neurons in one layer of top NN
+    //m: number of layers in the top NN
+    int n, m;
+    firstLayerWeightsStream>>n>>m;
+
+    int w1[n], w2[n][n], w3[n];
+    for (int i = 0; i < n; ++i) {
+        firstLayerWeightsStream>>w1[i];
+    }
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            firstLayerWeightsStream>>w2[i][j];
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        firstLayerWeightsStream>>w3[i];
+    }
+
     return 0;
 }
