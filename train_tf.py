@@ -25,8 +25,6 @@ def import_data(path):
     key = np.reshape(key, (-1, 1))
     value = np.reshape(value, (-1, 1))
 
-    print(key.shape)
-    print(value.shape)
     return key, value
 
 
@@ -80,26 +78,105 @@ class TrainTop:
 
         if not os.path.exists("models_tf/{}".format(self.identifier)):
             os.makedirs("models_tf/{}".format(self.identifier))
-        self.model.save("models_tf/{}/super_layer.pt".format(self.identifier))
+        self.model.save("models_tf/{}/super_layer.h5".format(self.identifier))
 
-    def test(self, read_model=False, write_buckets=True, total_buckets=100):
+        converter = tf.lite.TFLiteConverter.from_keras_model(self.model)  # TF 2.0
+        # converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
+
+        # Following code is used for further optimization of weights. Here we notice a massive drop in performance
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+
+        sample = tf.cast(self.keys, tf.float32)
+        sample = tf.data.Dataset.from_tensor_slices((sample)).batch(1)
+        def representative_data_gen():
+            for input_value in sample.take(1300000):
+                yield [input_value]
+        converter.representative_dataset = representative_data_gen
+
+        tflite_model = converter.convert()
+
+        open("models_tf/{}/super_layer.tflite".format(self.identifier), "wb").write(tflite_model)
+
+    def getWeights(self, tflite=False, read_model=False):
+        """
+        :param read_model: Whether to read the model saved by the train function
+        :param tflite: Read from quantized tflite file
+        """
+
+        if self.keys is None:
+            self.keys, self.values = import_data(self.filename)
+        predictions = None
+
+        if read_model:
+            if tflite:
+                self.model = tf.lite.Interpreter(model_path="models_tf/{}/super_layer.tflite".format(self.identifier))
+                self.model.allocate_tensors()
+                # Get input and output tensors.
+                details = self.model.get_tensor(0)
+                print(details)
+                details = self.model.get_tensor(1)
+                print(details)
+                details = self.model.get_tensor(2)
+                print(details)
+                details = self.model.get_tensor(3)
+                print(details)
+                # details = self.model.get_tensor(4)
+                # print(details)
+                # details = self.model.get_tensor(4)
+                # print(details)
+                # details = self.model.get_tensor(5)
+                # print(details)
+                # details = self.model.get_tensor(6)
+                # print(details)
+                input_details = self.model.get_input_details()
+                output_details = self.model.get_output_details()
+
+            else:
+                if self.model is None:
+                    self.model = tf.keras.models.load_model("models_tf/{}/super_layer.h5".format(self.identifier))
+                for layer in self.model.layers:
+                    print(layer.get_weights())
+        else:
+            for layer in self.model.layers:
+                print(layer.get_weights())
+
+    def test(self, tflite=False, read_model=False, write_buckets=True, total_buckets=100):
         """
         :param read_model: Whether to read the model saved by the train function
         :param total_buckets: Divide the data between the buckets to train the model for next layer
-        :param identifier: Helps identify the dataset
         :param write_buckets: Write the buckets out to disk. Writes the training data for next layer to the buckets directory.
+        :param tflite: Read from quantized tflite file
         """
+        if self.keys is None:
+            self.keys, self.values = import_data(self.filename)
+        predictions = None
+
         if read_model:
-            self.model = tf.keras.models.load_model("models_tf/{}/super_layer.pt".format(self.identifier))
+            if tflite:
+                self.model = tf.lite.Interpreter(model_path="models_tf/{}/super_layer.tflite".format(self.identifier))
+                self.model.allocate_tensors()
+                # Get input and output tensors.
+                input_details = self.model.get_input_details()
+                output_details = self.model.get_output_details()
+                self.keys = np.reshape(self.keys, (-1,1,1)).astype(np.float32)
+                predictions = []
+                for i in range(self.keys.shape[0]):
+                    self.model.set_tensor(input_details[0]['index'], self.keys[i])
+                    self.model.invoke()
+                    predictions.append(self.model.get_tensor(output_details[0]['index'])[0])
+                predictions = np.asarray(predictions)
+            else:
+                self.model = tf.keras.models.load_model("models_tf/{}/super_layer.h5".format(self.identifier))
+                predictions = self.model.predict(self.keys)
+        else:
+            predictions = self.model.predict(self.keys)
 
         if self.verbose:
             print("\n\nEvaluation:\n\n")
 
-        if self.keys is None:
-            self.keys, self.values = import_data(self.filename)
-        predictions = self.model.predict(self.keys)
-        big_bucket = dict()
 
+        big_bucket = dict()
+        self.keys = np.reshape(self.keys, (-1,1))
         predictions = np.concatenate((self.keys, self.values, predictions), axis=1)
 
         total_length = predictions.shape[0]
@@ -177,17 +254,20 @@ def scikit_linreg(identifier, bucket=0, threshold=64, verbose=True):
 
 
 if __name__ == '__main__':
-    trainer = TrainTop(identifier=dataset_identifier, epochs=3, batch_size=512, filename=fileName, lr=0.01,
-                       loss="mse", n1=32, n2=0,
+    trainer = TrainTop(identifier=dataset_identifier, epochs=20, batch_size=2048, filename=fileName, lr=0.01,
+                       loss="mse", n1=32, n2=32,
                        bias=True, optimizer='Adagrad', validation_split=0.0, verbose=True)
 
     trainer.train()
-    trainer.test(read_model=True, write_buckets=True, total_buckets=100)
+    trainer.test(tflite=True, read_model=False, write_buckets=True, total_buckets=100)
+    trainer.test(tflite=True, read_model=True, write_buckets=True, total_buckets=100)
+    # trainer.test(tflite=True, read_model=True, write_buckets=True, total_buckets=100)
 
+    trainer.getWeights(tflite=True, read_model=True)
 
     start = datetime.datetime.now()
 
-    save_scikit(identifier=dataset_identifier, buckets=100, verbose=False)
+    # save_scikit(identifier=dataset_identifier, buckets=100, verbose=False)
 
     #
     # # Code to run all the SciKit Learn models parallel

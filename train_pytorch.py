@@ -107,7 +107,7 @@ class TrainTop:
     """
 
     def __init__(self, identifier, epochs, batch_size, device, filename, lr=0.01, crit=nn.MSELoss(), n1=32, n2=0,
-                 bias=True, bn=False, optimizer, verbose=True):
+                 bias=True, bn=False, optimizer="Adagrad", verbose=True):
         self.epochs = epochs
         self.batch_size = batch_size
         self.crit = crit
