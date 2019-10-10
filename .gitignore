@@ -7,7 +7,6 @@ inference/inference
 /models/
 /buckets_tf/
 /buckets/
-/utils/
 /utils/newData.csv
 /utils/newData0.1.csv
 /utils/newData1.csv
