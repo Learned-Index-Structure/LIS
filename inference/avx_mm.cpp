@@ -85,8 +85,8 @@ void matmult_AVX_1x1x32(Mat1x32 &out, const Mat1x32 &A, const Mat1x32 &B) {
 
 float matmult_AVX_1x32x1(const Mat1x32 &A, const Mat1x32 &B) {
 
-    __m256i vsum = _mm256_set1_ps(0);
-    float sum = 0;
+    //__m256i vsum = _mm256_set1_ps(0);
+    //float sum = 0;
 
     __m256 result0 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0]);
     result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[1]));
@@ -94,12 +94,13 @@ float matmult_AVX_1x32x1(const Mat1x32 &A, const Mat1x32 &B) {
     result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[3]));
 
     // horizontal add of 8 16-bit partial sums and return result
-    result0 = _mm256_add_ps(result0, _mm256_srli_si256(result0, 8));
-    result0 = _mm256_add_ps(result0, _mm256_srli_si256(result0, 4));
-    result0 = _mm256_add_ps(result0, _mm256_srli_si256(result0, 0));
-    sum = result0[0];
+    result0 = _mm256_hadd_ps(result0, result0);
+    result0 = _mm256_hadd_ps(result0, result0);
+    result0 = _mm256_hadd_ps(result0, result0);
+//    result0 = _mm256_hadd_ps(result0, _mm256_srli_si256(result0, 0));
+    //sum = result0[0];
 
-    return sum;
+    return result0[0];
 }
 
 float matmult_ref_1x32x1(const Mat1x32 &A, const Mat1x32 &B) {
@@ -137,36 +138,36 @@ int main(int argc, char **argv) {
     float sum = 0;
 
     for (int i = 0; i < 1; i++) {
-        static const int nruns = 4096;
-        static const int muls_per_run = 4096;
+
         unsigned long long best_time = ~0ull;
 
-        for (int run = 0; run < nruns; run++) {
-            unsigned long long time = __rdtsc();
+        for (int run = 0; run < 1; run++) {
+            auto t1 = Clock::now();
             sum = matmult_ref_1x32x1(A0, A1);
-            time = __rdtsc() - time;
+            auto t2 = Clock::now();
+            auto time = chrono::duration_cast<chrono::nanoseconds>(t2 - t1).count();
             if (time < best_time)
                 best_time = time;
         }
         cout << sum << endl;
 
-        double cycles_per_run = (double) best_time / (double) muls_per_run;
+        double cycles_per_run = (double) best_time;
         printf("%12s: %.2f cycles\n", "Last Layer (Ref)", cycles_per_run);
 
-        for (int run = 0; run < nruns; run++) {
-            unsigned long long time = __rdtsc();
+        for (int run = 0; run < 1; run++) {
+            auto t1 = Clock::now();
             float sum = matmult_AVX_1x32x1(A0, A1);
-            time = __rdtsc() - time;
+            auto t2 = Clock::now();
+
+            auto time = chrono::duration_cast<chrono::nanoseconds>(t2 - t1).count();
             if (time < best_time)
                 best_time = time;
         }
         cout << sum << endl;
 
-        cycles_per_run = (double) best_time / (double) muls_per_run;
-        printf("%12s: %.2f cycles\n", "Last Layer (1x32x1)", cycles_per_run);
+        cycles_per_run = (double) best_time;
+        printf("%12s: %.2f ns\n", "Last Layer (1x32x1)", cycles_per_run);
     }
-
-
 
 
     static const struct {
@@ -183,8 +184,6 @@ int main(int argc, char **argv) {
     srand(1234); // deterministic random tests(TM)
 
     // correctness tests
-    // when compiled with /arch:SSE (or SSE2/AVX), all functions are
-    // supposed to return the exact same results!
     for (int i = 0; i < 1; i++) {
         Mat1x32 A, out, ref_out;
         Mat32x32 B;
@@ -218,16 +217,6 @@ int main(int argc, char **argv) {
     };
     static const int nperfvars = (int) (sizeof(perf_variants) / sizeof(*perf_variants));
 
-    /*
-       results on my sandy bridge laptop when compiling the code in x64
-       mode with VC2010 using /arch:AVX:
-        all ok.
-                 ref: 59.00 cycles
-                 SSE: 20.52 cycles
-            AVX_4mem: 15.64 cycles
-               AVX_8: 14.13 cycles
-    */
-
     val = 1;
 
     Mat1x32 Aperf, out;
@@ -235,21 +224,26 @@ int main(int argc, char **argv) {
     randmat(Aperf);
     randmat(Bperf);
 
-    for (int i = 0; i < nvars; i++) {
-        static const int nruns = 4096;
-        static const int muls_per_run = 4096;
-        unsigned long long best_time = ~0ull;
+    double t_sum = 0;
 
+    for (int i = 0; i < nvars; i++) {
+        static const int nruns = 10000;
+        static const int muls_per_run = 10000;
+        unsigned long long best_time = ~0ull;
+        t_sum = 0;
         for (int run = 0; run < nruns; run++) {
-            unsigned long long time = __rdtsc();
+            auto t1 = Clock::now();
             perf_variants[i].run(&out, &Aperf, &Bperf, muls_per_run);
-            time = __rdtsc() - time;
+
+            auto t2 = Clock::now();
+            auto time = chrono::duration_cast<chrono::nanoseconds>(t2 - t1).count();
+            t_sum += (double) time;
             if (time < best_time)
                 best_time = time;
         }
 
         double cycles_per_run = (double) best_time / (double) muls_per_run;
-        printf("%12s: %.2f cycles\n", perf_variants[i].name, cycles_per_run);
+        printf("%12s - min: %.2f ns , avg: %.4f\n", perf_variants[i].name, cycles_per_run, t_sum / (double) muls_per_run / (double) muls_per_run );
     }
 
     return 0;
