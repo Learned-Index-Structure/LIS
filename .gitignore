@@ -11,3 +11,4 @@ inference/inference
 /utils/newData0.1.csv
 /utils/newData1.csv
 /utils/newData10.csv
+*.out
