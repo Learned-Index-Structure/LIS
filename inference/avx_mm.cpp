@@ -62,12 +62,24 @@ void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
     __m256 result2 = _mm256_mul_ps(A_vec, B.row[0][2]);
     __m256 result3 = _mm256_mul_ps(A_vec, B.row[0][3]);
 
-    for (int i = 1; i < 32; i++) {
+    A_vec = _mm256_broadcast_ss(&A.m[0][1]);
+    result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[1][0]));
+    result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[1][1]));
+    result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[1][2]));
+    result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[1][3]));
+
+    for (int i = 2; i < 32; i+=2) {
         A_vec = _mm256_broadcast_ss(&A.m[0][i]);
         result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[i][0]));
         result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i][1]));
         result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[i][2]));
         result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[i][3]));
+
+        A_vec = _mm256_broadcast_ss(&A.m[0][i+1]);
+        result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[i+1][0]));
+        result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i+1][1]));
+        result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[i+1][2]));
+        result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[i+1][3]));
     }
 
     out.row[0] = result0;
@@ -227,7 +239,7 @@ int main(int argc, char **argv) {
 
     double t_sum = 0;
 
-    for (int i = 0; i < nvars; i++) {
+    for (int i = 0; i < nperfvars; i++) {
         static const int nruns = 10000;
         static const int muls_per_run = 10000;
         unsigned long long best_time = ~0ull;
