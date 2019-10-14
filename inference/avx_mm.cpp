@@ -43,10 +43,11 @@ static void randmat(Mat32x32 &M) {
             M.m[i][j] = randf();
 }
 
+template <size_t N, size_t M>
 void matmult_ref(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
     Mat1x32 t = {0.0}; // write to temp
-    for (int i = 0; i < 1; i++)
-        for (int j = 0; j < 32; j++)
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
             for (int k = 0; k < 32; k++)
                 t.m[i][j] += A.m[i][k] * B.m[k][j];
 
@@ -68,7 +69,19 @@ void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
     result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[1][2]));
     result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[1][3]));
 
-    for (int i = 2; i < 32; i+=2) {
+    A_vec = _mm256_broadcast_ss(&A.m[0][2]);
+    result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[2][0]));
+    result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[2][1]));
+    result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[2][2]));
+    result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[2][3]));
+
+    A_vec = _mm256_broadcast_ss(&A.m[0][3]);
+    result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[3][0]));
+    result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[3][1]));
+    result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[3][2]));
+    result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[3][3]));
+
+    for (int i = 4; i < 32; i+=4) {
         A_vec = _mm256_broadcast_ss(&A.m[0][i]);
         result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[i][0]));
         result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i][1]));
@@ -80,6 +93,18 @@ void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
         result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i+1][1]));
         result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[i+1][2]));
         result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[i+1][3]));
+
+        A_vec = _mm256_broadcast_ss(&A.m[0][i+2]);
+        result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[i+2][0]));
+        result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i+2][1]));
+        result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[i+2][2]));
+        result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[i+2][3]));
+
+        A_vec = _mm256_broadcast_ss(&A.m[0][i+3]);
+        result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[i+3][0]));
+        result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i+3][1]));
+        result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[i+3][2]));
+        result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[i+3][3]));
     }
 
     out.row[0] = result0;
@@ -131,7 +156,7 @@ int the_mask = 0; // global so the compiler can't be sure what its value is for 
 static void run_ref(Mat1x32 *out, const Mat1x32 *A, const Mat32x32 *B, int count) {
     for (int i = 0; i < count; i++) {
         int j = i & the_mask;
-        matmult_ref(out[j], A[j], B[j]);
+        matmult_ref<1, 32>(out[j], A[j], B[j]);
     }
 }
 
@@ -188,7 +213,7 @@ int main(int argc, char **argv) {
         const char *name;
         void (*matmult)(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B);
     } variants[2] = {
-            {"matmult_ref",   matmult_ref},
+            {"matmult_ref_1_32",   matmult_ref<1, 32>},
             {"matmult_AVX_1x32x32", matmult_AVX_1x32x32},
     };
 
@@ -203,7 +228,7 @@ int main(int argc, char **argv) {
         randmat(A);
         randmat(B);
 
-        matmult_ref(ref_out, A, B);
+        matmult_ref<1, 32>(ref_out, A, B);
 
         for (int j = 0; j < nvars; j++) {
             randmat(out);
