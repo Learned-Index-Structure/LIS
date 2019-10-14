@@ -56,17 +56,18 @@ void matmult_ref(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
 
 void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
     _mm256_zeroupper();
-
-    __m256 result0 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0][0]);
-    __m256 result1 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0][1]);
-    __m256 result2 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0][2]);
-    __m256 result3 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0][3]);
+    __m256 A_vec = _mm256_broadcast_ss(&A.m[0][0]);
+    __m256 result0 = _mm256_mul_ps(A_vec, B.row[0][0]);
+    __m256 result1 = _mm256_mul_ps(A_vec, B.row[0][1]);
+    __m256 result2 = _mm256_mul_ps(A_vec, B.row[0][2]);
+    __m256 result3 = _mm256_mul_ps(A_vec, B.row[0][3]);
 
     for (int i = 1; i < 32; i++) {
-        result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][i]), B.row[i][0]));
-        result1 = _mm256_add_ps(result1, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][i]), B.row[i][1]));
-        result2 = _mm256_add_ps(result2, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][i]), B.row[i][2]));
-        result3 = _mm256_add_ps(result3, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][i]), B.row[i][3]));
+        A_vec = _mm256_broadcast_ss(&A.m[0][i]);
+        result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[i][0]));
+        result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i][1]));
+        result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[i][2]));
+        result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[i][3]));
     }
 
     out.row[0] = result0;
@@ -76,10 +77,11 @@ void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
 }
 
 void matmult_AVX_1x1x32(Mat1x32 &out, const Mat1x32 &A, const Mat1x32 &B) {
-    out.row[0] = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0]);
-    out.row[1] = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[1]);
-    out.row[2] = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[2]);
-    out.row[3] = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[3]);
+    __m256 m_vect = _mm256_broadcast_ss(&A.m[0][0]);
+    out.row[0] = _mm256_mul_ps(m_vect, B.row[0]);
+    out.row[1] = _mm256_mul_ps(m_vect, B.row[1]);
+    out.row[2] = _mm256_mul_ps(m_vect, B.row[2]);
+    out.row[3] = _mm256_mul_ps(m_vect, B.row[3]);
 }
 
 
@@ -172,11 +174,10 @@ int main(int argc, char **argv) {
 
     static const struct {
         const char *name;
-
         void (*matmult)(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B);
     } variants[2] = {
-            {"ref",   matmult_ref},
-            {"AVX_8", matmult_AVX_1x32x32},
+            {"matmult_ref",   matmult_ref},
+            {"matmult_AVX_1x32x32", matmult_AVX_1x32x32},
     };
 
     static const int nvars = (int) (sizeof(variants) / sizeof(*variants));
