@@ -12,3 +12,4 @@ inference/inference
 /utils/newData1.csv
 /utils/newData10.csv
 *.out
+inference/weights.h
