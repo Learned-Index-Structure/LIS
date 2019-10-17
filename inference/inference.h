@@ -4,6 +4,7 @@
 #include <string.h>
 #include <chrono>
 #include <iostream>
+#include "iaca_mac/iacaMarks.h"
 
 union Mat1x1 { //Just for benchmarking
     float m[1][1];
@@ -115,8 +116,8 @@ inline void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &
     result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[3][2]));
     result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[3][3]));
 
-
     for (int i = 4; i < 32; i += 4) {
+
         A_vec = _mm256_broadcast_ss(&A.m[0][i]);
         result0 = _mm256_add_ps(result0, _mm256_mul_ps(A_vec, B.row[i][0]));
         result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i][1]));
@@ -140,6 +141,7 @@ inline void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &
         result1 = _mm256_add_ps(result1, _mm256_mul_ps(A_vec, B.row[i + 3][1]));
         result2 = _mm256_add_ps(result2, _mm256_mul_ps(A_vec, B.row[i + 3][2]));
         result3 = _mm256_add_ps(result3, _mm256_mul_ps(A_vec, B.row[i + 3][3]));
+
     }
 
     out.row[0] = result0;
