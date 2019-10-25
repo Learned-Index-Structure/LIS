@@ -14,7 +14,7 @@ std::vector<uint32_t> vec;
 inline void BinaryInsert(uint32_t n) {
     uint32_t i = 0;
     for (i = 0; i < n; i++) {
-        vec.push_back(i + 1);
+        vec.push_back(i + 12);
     }
 }
 
