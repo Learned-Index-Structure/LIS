@@ -13,10 +13,12 @@ import os
 
 NUM_PROC = 5  # Parallel threads during the training of the next layer
 CUDA = True  # Use GPU if available
-buckets = 100  # Number of models in layer 2
-fileName = "utils/newData10.csv"  # Dataset
-dataset_identifier = "dummy_data"
+buckets = 10000  # Number of models in layer 2
+fileName = "/home/yash/Desktop/CSE-662/Code/LIS/data/sorted_keys_small.csv"  # Dataset
+# fileName = "utils/newData10.csv"  # Dataset
+dataset_identifier = "dummy_data_1"
 
+torch.set_default_dtype(torch.float64)
 
 class SuperData(Dataset):
     """
@@ -27,9 +29,10 @@ class SuperData(Dataset):
 
     def __init__(self, filename):
         self.data = np.loadtxt(filename, delimiter=' ')
+        np.random.shuffle((self.data).astype(np.float64))
 
     def __getitem__(self, item):
-        key = self.data[item, 1]
+        key = self.data[item, 1]-1425168000107.1
         value = self.data[item, 0]
         return torch.tensor([key]), torch.tensor([value])
 
@@ -57,7 +60,7 @@ class SuperNet(nn.Module):
         else:
             self.layers = nn.Sequential(nn.Linear(in_features=1, out_features=n1, bias=bias),
                                         nn.ReLU(),
-                                        nn.Linear(n1, n2, bias=bias)
+                                        nn.Linear(n1, n2, bias=bias),
                                         )
 
         self.out_layer = nn.Linear(n1 if n2 == 0 else n2, 1, bias=bias)
@@ -120,6 +123,14 @@ class TrainTop:
 
         if optimizer == "Adagrad":
             self.optimizer = torch.optim.Adagrad(params=self.super.parameters(), lr=lr)
+        elif optimizer == "SGD":
+            self.optimizer = torch.optim.SGD(params=self.super.parameters(), lr=lr, momentum=0.9)
+        elif optimizer == "Adamax":
+            self.optimizer = torch.optim.Adamax(params=self.super.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+        elif optimizer == "RMSProp":
+            self.optimizer = torch.optim.RMSprop(params=self.super.parameters(), lr=lr, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)
+        elif optimizer == "Adam":
+            self.optimizer = torch.optim.Adam(params=self.super.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.1, amsgrad=False)
 
 
         self.dataset = SuperData(filename=filename)
@@ -129,7 +140,9 @@ class TrainTop:
 
         for e in range(self.epochs):
             if self.verbose:
-                print("\n\nEpoch:", e)
+                print("\n\nEpoch:", e+1)
+
+            epoch_loss = 0
 
             for i, (key, val) in enumerate(self.dataload):
                 key = key.to(self.device)
@@ -145,11 +158,14 @@ class TrainTop:
                 self.optimizer.step()
 
                 if self.verbose:
-                    if (i + 1) % 800 == 0:
+                    if (i + 1) % 10 == 0:
                         print("Batch: ", i + 1, "Loss: ", loss.item())
-        if not os.path.exists("models/{}".format(self.identifier)):
-            os.makedirs("models/{}".format(self.identifier))
-        torch.save(obj=self.super.state_dict(), f="models/{}/super_layer.pt".format(self.identifier))
+                        epoch_loss += loss.item()
+
+            print("\nEpoch: ", e + 1, "Loss: ", epoch_loss, "\n")
+            if not os.path.exists("models/{}".format(self.identifier)):
+                os.makedirs("models/{}".format(self.identifier))
+            torch.save(obj=self.super.state_dict(), f="models/{}/super_layer.pt".format(self.identifier))
 
     def test(self, read_model=False, write_buckets=True, total_buckets=100):
         """
@@ -173,6 +189,8 @@ class TrainTop:
         for i in range(total_buckets):
             big_bucket[i] = []
 
+        f = open("models/{}/model_output.txt".format(self.identifier), "w+")
+
         for i, (key, val) in enumerate(self.dataload):
 
             key = key.to(self.device)
@@ -185,19 +203,25 @@ class TrainTop:
                 v = v.item()
                 o = o.item()
 
-                if self.verbose and i % 8000 == 0:
+                if self.verbose and i % 80000 == 0:
                     print("Batch: ", i+1, "Key: ", k, "Value: ", v, "Model Output: ", o, "Difference: ", o-v)
 
                 mn = (total_buckets * o) / total_length
                 model_num = np.clip(np.floor(mn), 0, total_buckets - 1)
                 big_bucket[int(model_num)].append([v, k])
 
+                f.write(str(v) + " " + str(o) + "\n")
+
         if write_buckets:
             print("\n\nSaving data files for layer 2:\n\n")
             if not os.path.exists("buckets/{}".format(self.identifier)):
                 os.makedirs("buckets/{}".format(self.identifier))
             for b in big_bucket:
-                np.savetxt(fname="buckets/{}/bucket_{}.txt".format(self.identifier, b), X=np.array(big_bucket[b]), fmt="%u")
+                np.savetxt(fname="buckets/{}/bucket_{}.txt".format(self.identifier, b), X=np.array(big_bucket[b]), fmt="%f")
+
+
+    def plotData(self):
+        pass
 
 
 def pytorch_linreg(model, identifier, device, bucket=0, epochs=10, batch_size=64, lr=0.001, verbose=False):
@@ -301,21 +325,21 @@ def scikit_linreg(identifier, bucket=0, threshold=64, verbose=True):
 if __name__ == '__main__':
     use_cuda = CUDA and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-
-    # Create a trainer object for training the first layer
-    trainer = TrainTop(identifier=dataset_identifier, epochs=2, batch_size=64, device=device, filename=fileName,
-                       lr=0.01, optimizer="Adagrad", crit=nn.MSELoss(), n1=32, n2=0, bias=True, bn=False, verbose=True)
+    #
+    # # Create a trainer object for training the first layer
+    trainer = TrainTop(identifier=dataset_identifier, epochs=1, batch_size=32768//2, device=device, filename=fileName,
+                       lr=0.04, optimizer="Adam", crit=nn.MSELoss(), n1=32, n2=32, bias=True, bn=False, verbose=True)
 
     # Train the model using the hyper-params passed above
     trainer.train()
 
     # Testing loop and preparation for the second layer
-    # trainer.test(total_buckets=buckets)
-    trainer.test(read_model=True, write_buckets=True, total_buckets=buckets)
 
-    start = datetime.datetime.now()
+    trainer.test(read_model=True, write_buckets=False, total_buckets=buckets)
+    #
+    # start = datetime.datetime.now()
 
-    save_scikit(identifier=dataset_identifier, buckets=100, verbose=False)
+    # save_scikit(identifier=dataset_identifier, buckets=buckets, verbose=False)
 
     # # Code to run all the pyTorch Linear Regression models parallel
     #
@@ -347,5 +371,5 @@ if __name__ == '__main__':
     #         p.join()
     #     i += NUM_PROC
 
-    end = datetime.datetime.now()
-    print("\nTime taken: " + str(end - start))
+    # end = datetime.datetime.now()
+    # print("\nTime taken: " + str(end - start))

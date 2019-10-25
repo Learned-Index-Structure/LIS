@@ -133,6 +133,8 @@ def get_keys(input_path, writepath, verbose = True):
 
     keys = []
     files = []
+    values = []
+    val = 0
     for file in os.listdir(input_path):
         files.append([file, int((file.split("_")[1]).split(".")[0])])
     files = sorted(files, key=itemgetter(1))
@@ -143,15 +145,23 @@ def get_keys(input_path, writepath, verbose = True):
                 print("Working on file: ", file[0])
             readCSV = csv.reader(csvfile, delimiter='|')
             for row in readCSV:
-                if float(row[2]) >= last:
+                if float(row[2]) > last:
                     keys.append(float(row[2]))
+                    values.append(val)
+                    val += 1
                     last = float(row[2])
+                elif float(row[2]) == last:
+                    val += 1
                 else:
                     print("Error: ", last, float(row[2]))
-    my_df = pd.DataFrame(keys)
-    my_df.to_csv(writepath + "sorted_keys.csv", index=True, header=False, sep="|")
+    # my_df = pd.DataFrame(values, keys)
+    my_df = pd.DataFrame({'values': values,
+     'keys': keys
+    })
+
+    my_df.to_csv(writepath + "sorted_keys_non_repeated.csv", index=False, header=False, sep="|")
 
 
-initial_split(writepath="/media/yash/Data/data_1", readpath="/home/yash/Desktop/CSE-662/Data/2014", verbose=True)
-sort_merge(input_path="/media/yash/Data/data_1/", output_path='/media/yash/Data/data_2/', out_file_len=1000000)
+# initial_split(writepath="/media/yash/Data/data_1", readpath="/home/yash/Desktop/CSE-662/Data/2014", verbose=True)
+# sort_merge(input_path="/media/yash/Data/data_1/", output_path='/media/yash/Data/data_2/', out_file_len=1000000)
 get_keys(input_path='/media/yash/Data/data_2/', writepath="/media/yash/Data/data_2/")
