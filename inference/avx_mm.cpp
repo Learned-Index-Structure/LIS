@@ -6,28 +6,12 @@
 #include <chrono>
 #include <iostream>
 
+#include "mat.h"
+#include "weights.h"
+
 
 using namespace std;
 typedef chrono::high_resolution_clock Clock;
-union Mat1x32 {
-    float m[1][32];
-    __m256 row[4];
-};
-
-union Mat1x32i {
-    int m[1][32];
-    __m256i row[4];
-};
-
-union Mat32x32 {
-    float m[32][32];
-    __m256 row[32][4];
-};
-
-union Mat32x32i {
-    int m[32][32];
-    __m256i row[32][4];
-};
 
 float val = 1.0;
 
@@ -147,7 +131,31 @@ void matmult_AVX_1x32x32i(Mat1x32i &out, const Mat1x32i &A, const Mat32x32i &B) 
     result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[3][2]));
     result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[3][3]));
 
-    for (int i = 4; i < 32; i+=4) {
+    A_vec = _mm256_set1_epi32(A.m[0][4]);
+    result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[4][0]));
+    result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[4][1]));
+    result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[4][2]));
+    result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[4][3]));
+
+    A_vec = _mm256_set1_epi32(A.m[0][5]);
+    result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[5][0]));
+    result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[5][1]));
+    result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[5][2]));
+    result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[5][3]));
+
+    A_vec = _mm256_set1_epi32(A.m[0][6]);
+    result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[6][0]));
+    result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[6][1]));
+    result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[6][2]));
+    result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[6][3]));
+
+    A_vec = _mm256_set1_epi32(A.m[0][7]);
+    result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[7][0]));
+    result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[7][1]));
+    result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[7][2]));
+    result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[7][3]));
+
+    for (int i = 8; i < 32; i+=8) {
         A_vec = _mm256_set1_epi32(A.m[0][i]);
         result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[i][0]));
         result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[i][1]));
@@ -171,6 +179,30 @@ void matmult_AVX_1x32x32i(Mat1x32i &out, const Mat1x32i &A, const Mat32x32i &B) 
         result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[i+3][1]));
         result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[i+3][2]));
         result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[i+3][3]));
+
+        A_vec = _mm256_set1_epi32(A.m[0][i+4]);
+        result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[i+4][0]));
+        result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[i+4][1]));
+        result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[i+4][2]));
+        result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[i+4][3]));
+
+        A_vec = _mm256_set1_epi32(A.m[0][i+5]);
+        result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[i+5][0]));
+        result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[i+5][1]));
+        result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[i+5][2]));
+        result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[i+5][3]));
+
+        A_vec = _mm256_set1_epi32(A.m[0][i+6]);
+        result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[i+6][0]));
+        result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[i+6][1]));
+        result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[i+6][2]));
+        result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[i+6][3]));
+
+        A_vec = _mm256_set1_epi32(A.m[0][i+7]);
+        result0 = _mm256_add_epi32(result0, _mm256_mullo_epi32(A_vec, B.row[i+7][0]));
+        result1 = _mm256_add_epi32(result1, _mm256_mullo_epi32(A_vec, B.row[i+7][1]));
+        result2 = _mm256_add_epi32(result2, _mm256_mullo_epi32(A_vec, B.row[i+7][2]));
+        result3 = _mm256_add_epi32(result3, _mm256_mullo_epi32(A_vec, B.row[i+7][3]));
     }
 
     out.row[0] = result0;
@@ -315,6 +347,7 @@ int main(int argc, char **argv) {
 
     printf("all ok.\n");
 
+{
     // perf tests
     // as usual with such microbenchmarks, this isn't measuring anything
     // terribly useful, but here goes.
@@ -356,8 +389,9 @@ int main(int argc, char **argv) {
         double cycles_per_run = (double) best_time / (double) muls_per_run;
         printf("%15s - min: %.2f ns , avg: %.4f\n", perf_variants[i].name, cycles_per_run, t_sum / (double) muls_per_run / (double) muls_per_run );
     }
+}
 
-
+{
     static const struct {
         const char *name;
 
@@ -373,7 +407,7 @@ int main(int argc, char **argv) {
     randmat<1 ,32>(Aperfi);
     randmat<32, 32>(Bperfi);
 
-    t_sum = 0;
+    double t_sum = 0;
 
     for (int i = 0; i < nperfvarsi; i++) {
         static const int nruns = 10000;
@@ -393,6 +427,28 @@ int main(int argc, char **argv) {
 
         double cycles_per_run = (double) best_time / (double) muls_per_run;
         printf("%15s - min: %.2f ns , avg: %.4f\n", perf_variantsi[i].name, cycles_per_run, t_sum / (double) muls_per_run / (double) muls_per_run );
+    }
+}
+
+    {
+        Mat1x32 out;
+        static const int nruns = 10000;
+        static const int muls_per_run = 10000;
+        unsigned long long best_time = ~0ull;
+        double t_sum = 0;
+        for (int run = 0; run < nruns; run++) {
+            auto t1 = Clock::now();
+            run_AVX_8(&out, &mat1, &mat2, muls_per_run);
+
+            auto t2 = Clock::now();
+            auto time = chrono::duration_cast<chrono::nanoseconds>(t2 - t1).count();
+            t_sum += (double) time;
+            if (time < best_time)
+                best_time = time;
+        }
+
+        double cycles_per_run = (double) best_time / (double) muls_per_run;
+        printf("%15s - min: %.2f ns , avg: %.4f\n", "AVX hardcoded matrix", cycles_per_run, t_sum / (double) muls_per_run / (double) muls_per_run );
     }
 
     return 0;
