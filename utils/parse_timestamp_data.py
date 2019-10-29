@@ -38,7 +38,7 @@ def sort_merge(input_path, output_path, out_file_len=1000000, verbose = True):
     file_streams = dict()
 
     for file in os.listdir(input_path):
-        file_streams[file] = csv.reader(open(str(input_path + file)), delimiter='|')
+        file_streams[file] = csv.reader(open(str(input_path + file)), delimiter=' ')
 
     for k, v in file_streams.items():
         q.put(Data(next(v), k))
@@ -57,7 +57,7 @@ def sort_merge(input_path, output_path, out_file_len=1000000, verbose = True):
             i += 1
         else:
             my_df = pd.DataFrame(data_block)
-            my_df.to_csv(outfile, index=False, header=False, sep="|")
+            my_df.to_csv(outfile, index=False, header=False, sep=" ")
             file_suffix += 1
             if verbose:
                 print("Writing file: " + outfile)
@@ -82,7 +82,7 @@ def sort_merge(input_path, output_path, out_file_len=1000000, verbose = True):
     if verbose:
         print("Writing file: " + outfile)
     my_df = pd.DataFrame(data_block)
-    my_df.to_csv(outfile, index=False, header=False, sep="|")
+    my_df.to_csv(outfile, index=False, header=False, sep=" ")
 
 
 def initial_split(writepath, readpath, verbose=True):
@@ -108,18 +108,18 @@ def initial_split(writepath, readpath, verbose=True):
                 if j % 1000000 == 0 and j != 0:
                     if verbose:
                         print("Processing data: " + str(j))
-                    data = sorted(data, key=itemgetter(2))
+                    data.sort(key=lambda data: float(data[2]))
                     my_df = pd.DataFrame(data)
                     my_df.to_csv('{}/data_{}.csv'.format(writepath, fileNumber), index=False, header=False,
-                                 sep="|")
+                                 sep=" ")
                     data.clear()
                     fileNumber += 1
                 j += 1
     if verbose:
         print("Total rows: " + str(j))
-    data = sorted(data, key=itemgetter(2))
+    data.sort(key=lambda data: float(data[2]))
     my_df = pd.DataFrame(data)
-    my_df.to_csv('{}/data_{}.csv'.format(writepath, fileNumber), index=False, header=False, sep="|")
+    my_df.to_csv('{}/data_{}.csv'.format(writepath, fileNumber), index=False, header=False, sep=" ")
 
 
 def get_keys(input_path, writepath, verbose = True):
@@ -131,10 +131,11 @@ def get_keys(input_path, writepath, verbose = True):
     """
     print("\n\nReading all files and writing the keys in sorted manner.\n\n")
 
-    keys = []
     files = []
-    values = []
     val = 0
+
+    writer = csv.writer(open(writepath + "sorted_keys_non_repeated.csv", "w"), delimiter=' ')
+
     for file in os.listdir(input_path):
         files.append([file, int((file.split("_")[1]).split(".")[0])])
     files = sorted(files, key=itemgetter(1))
@@ -143,25 +144,18 @@ def get_keys(input_path, writepath, verbose = True):
         with open(input_path + file[0]) as csvfile:
             if verbose:
                 print("Working on file: ", file[0])
-            readCSV = csv.reader(csvfile, delimiter='|')
+            readCSV = csv.reader(csvfile, delimiter=' ')
             for row in readCSV:
                 if float(row[2]) > last:
-                    keys.append(float(row[2]))
-                    values.append(val)
+                    writer.writerow([val, float(row[2])])
                     val += 1
                     last = float(row[2])
                 elif float(row[2]) == last:
                     val += 1
                 else:
                     print("Error: ", last, float(row[2]))
-    # my_df = pd.DataFrame(values, keys)
-    my_df = pd.DataFrame({'values': values,
-     'keys': keys
-    })
-
-    my_df.to_csv(writepath + "sorted_keys_non_repeated.csv", index=False, header=False, sep="|")
 
 
-# initial_split(writepath="/media/yash/Data/data_1", readpath="/home/yash/Desktop/CSE-662/Data/2014", verbose=True)
-# sort_merge(input_path="/media/yash/Data/data_1/", output_path='/media/yash/Data/data_2/', out_file_len=1000000)
-get_keys(input_path='/media/yash/Data/data_2/', writepath="/media/yash/Data/data_2/")
+# initial_split(writepath="/media/yash/Data/CSE662_Data/WebLogs/data_1", readpath="/media/yash/Data/CSE662_Data/WebLogs/2014", verbose=True)
+# sort_merge(input_path="/media/yash/Data/CSE662_Data/WebLogs/data_1/", output_path='/media/yash/Data/CSE662_Data/WebLogs/data_2/', out_file_len=1000000)
+get_keys(input_path='/media/yash/Data/CSE662_Data/WebLogs/data_2/', writepath="/media/yash/Data/CSE662_Data/WebLogs/")

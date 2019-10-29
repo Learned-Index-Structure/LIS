@@ -2,23 +2,21 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 import numpy as np
 import datetime
 from sklearn.linear_model import LinearRegression
-import threading
 import os
 
 NUM_PROC = 5  # Parallel threads during the training of the next layer
 CUDA = True  # Use GPU if available
 buckets = 10000  # Number of models in layer 2
 fileName = "/home/yash/Desktop/CSE-662/Code/LIS/data/sorted_keys_small.csv"  # Dataset
-# fileName = "utils/newData10.csv"  # Dataset
 dataset_identifier = "dummy_data_1"
 
 torch.set_default_dtype(torch.float64)
+
 
 class SuperData(Dataset):
     """
@@ -132,7 +130,6 @@ class TrainTop:
         elif optimizer == "Adam":
             self.optimizer = torch.optim.Adam(params=self.super.parameters(), lr=lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.1, amsgrad=False)
 
-
         self.dataset = SuperData(filename=filename)
         self.dataload = DataLoader(dataset=self.dataset, batch_size=self.batch_size, shuffle=False)
 
@@ -218,10 +215,6 @@ class TrainTop:
                 os.makedirs("buckets/{}".format(self.identifier))
             for b in big_bucket:
                 np.savetxt(fname="buckets/{}/bucket_{}.txt".format(self.identifier, b), X=np.array(big_bucket[b]), fmt="%f")
-
-
-    def plotData(self):
-        pass
 
 
 def pytorch_linreg(model, identifier, device, bucket=0, epochs=10, batch_size=64, lr=0.001, verbose=False):
