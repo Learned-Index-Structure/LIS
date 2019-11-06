@@ -32,19 +32,16 @@ void eval_perf() {
     auto t1 = Clock::now();
 
     for (int i = 0; i < PREDICT_ITER; ++i) {
-//        IACA_START
         matmult_AVX_1x1x32(out_1, key, hidden_layer_1);
-        // relu(out_1);
+        relu<1, 32>(out_1);
         matmult_AVX_1x32x32(out_2, out_1, hidden_layer_2);
-        // relu(out_2);
+        relu<1, 32>(out_2);
         position = matmult_AVX_1x32x1(out_2, output_layer);
-        // relu(pred_layer_1);
 
         float pred = position * models / N;
         float value = pred * lr_wt[0] + lr_wt[1];
         sum += (long) value;
     }
-//    IACA_END
 
     auto t2 = Clock::now();
     cout << "Time: "

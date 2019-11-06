@@ -63,7 +63,7 @@ inline void load_layer_data(float (&layer_data)[models][rows][cols]) {
 
 
 #define models 10000
-#define N 1000000000
+#define N 1000000
 #define PREDICT_ITER 20000000
 
 
@@ -190,13 +190,22 @@ inline void MatMulNaive(O &out, const I1 &A, const I2 &B) {
     out = t;
 }
 
+template<size_t m, size_t n, typename T>
+inline void relu(T &out) {
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            out.m[i][j] = (out.m[i][j] > 0) ? out.m[i][j] : 0;
+        }
+    }
+}
+
 inline float NaiveInference() {
     MatMulNaive<1, 1, 32>(out_1, key, hidden_layer_1);
-    // relu(out_1);
+    relu<1, 32>(out_1);
     MatMulNaive<1, 32, 32>(out_2, out_1, hidden_layer_2);
-    // relu(out_2);
+    relu<1, 32>(out_2);
     MatMulNaive<1, 32, 1>(naive_output, out_2, output_layer);
-    // relu(pred_layer_1);
+
 
     float pred = naive_output.m[0][0] * models / N;
     return (pred * lr_wt[0] + lr_wt[1]);
@@ -206,11 +215,10 @@ inline float SIMDInference() {
     float position = 0.0;
 
     matmult_AVX_1x1x32(out_1, key, hidden_layer_1);
-    // relu(out_1);
+    relu<1, 32>(out_1);
     matmult_AVX_1x32x32(out_2, out_1, hidden_layer_2);
-    // relu(out_2);
+    relu<1, 32>(out_2);
     position = matmult_AVX_1x32x1(out_2, output_layer);
-    // relu(pred_layer_1);
 
     float pred = position * models / N;
     return (pred * lr_wt[0] + lr_wt[1]);
