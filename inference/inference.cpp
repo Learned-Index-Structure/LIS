@@ -1,7 +1,7 @@
 #include <fstream>
 #include <utility>
 
-#include "inference.h"
+#include "inference.hpp"
 
 #include "iaca_mac/iacaMarks.h"
 
