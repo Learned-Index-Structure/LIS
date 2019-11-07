@@ -1,9 +1,9 @@
 #include <fstream>
 #include <utility>
+#include <cmath>
 
 #include "inference.hpp"
-
-#include "iaca_mac/iacaMarks.h"
+#include "lms_algo.h"
 
 using namespace std;
 typedef chrono::high_resolution_clock Clock;
@@ -22,15 +22,30 @@ float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_laye
 }
 
 inline
-float solveSecondLayer(const float &firstLayerOutput, const vector<pair<int, int>> &linearModels, const int &N) {
+float solveSecondLayer(const float &firstLayerOutput, const vector<pair<int, int>> &linearModels, const int &N, vector<bool> isModel) {
     int modelIndex = firstLayerOutput * linearModels.size() / N;
-    return (firstLayerOutput * linearModels[i].first) + linearModels[i].second;
+    if (isModel[modelIndex]) {
+        return (firstLayerOutput * linearModels[i].first) + linearModels[i].second; 
+    } else {
+        //TODO: pass to B-Tree
+    }
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        cout<<"Usage:\ninference <first layer weights file> <second layer weights>"<endl;
+    if (argc != 4) {
+        cout<<"Usage:\ninference <data file> <first layer weights file> <second layer weights>"<endl;
         exit(0);
+    }
+
+    vector<float> data;
+    float temp1, temp2;
+    int tempInt;
+
+    ifstream dataFile(argv[1]);
+    if (dataFile.is_open()) {
+        dataFile>>tempInt;
+        dataFile>>temp1;
+        data.push_back(temp1);
     }
 
     Mat1x32 hidden_layer_1;
@@ -38,7 +53,7 @@ int main(int argc, char **argv) {
     Mat1x32 output_layer;
     Mat1x32 key;
 
-    ifstream firstLayerWeightsFile(argv[1]);
+    ifstream firstLayerWeightsFile(argv[2]);
     if (firstLayerWeightsFile.is_open()) {
         for (int i = 0; i < 32; ++i) {
             firstLayerWeightsFile>>hidden_layer_1.m[0][i];
@@ -53,13 +68,12 @@ int main(int argc, char **argv) {
         }
     }
 
-    ifstream secondLayerWeightsFile(argv[2]);
+    ifstream secondLayerWeightsFile(argv[3]);
     int N, modelCount;
     ifstream>>N>>modelCount;
     vector<pair<int,int>> linearModels;
     vector<pair<int, int>> errors;
     vector<bool> isModel;
-    float temp1, temp2;
 
     for (int i = 0; i < modelCount; ++i) {
         secondLayerWeightsFile>>temp1>>temp2;
@@ -76,7 +90,11 @@ int main(int argc, char **argv) {
     }
 
     float firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
-    float secondLayerAns = solveSecondLayer(firstLayerAns, linearModels, N);
+    float secondLayerAns = solveSecondLayer(firstLayerAns, linearModels, data.size());
+
+    int midSearchPoint = floor(secondLayerAns);
+    float keyToSearch = key.m[0][0];
+    int positionOfKey = BinarySearch<float, 512>(data, keyToSearch, midSearchPoint);
 
     return 0;
 }

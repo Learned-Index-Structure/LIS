@@ -18,10 +18,11 @@ inline void BinaryInsert(uint32_t n) {
     }
 }
 
-inline uint32_t BinarySearch(const std::vector<uint32_t> &arr, const uint32_t key, const uint32_t n) {
+template<typename T, size_t n>
+inline uint32_t BinarySearch(const std::vector<T> &arr, const T key, int pos) {
 
     uint32_t step = (1 << (31 - __builtin_clz(n - 1)));
-    uint32_t pos = arr[step - 1] < key ? n - step - 1 : -1;
+    // uint32_t pos = arr[step - 1] < key ? n - step - 1 : -1;
 
     while ((step >>= 1) > 0) {
         pos = (arr[pos + step] < key ? pos + step : pos);
