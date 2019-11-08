@@ -50,44 +50,39 @@ inline void matmult_ref(O &out, const I1 &A, const I2 &B) {
 }
 
 
-template<size_t models, size_t rows, size_t cols>
-inline void load_layer_data(float (&layer_data)[models][rows][cols]) {
-    for (int i = 0; i < models; i++) {
-        for (int j = 0; j < rows; j++) {
-            for (int k = 0; k < cols; k++) {
-                layer_data[i][j][k] = rand() % 10 + 1.0;
-            }
-        }
-    }
-}
+// template<size_t models, size_t rows, size_t cols>
+// inline void load_layer_data(float (&layer_data)[models][rows][cols]) {
+//     for (int i = 0; i < models; i++) {
+//         for (int j = 0; j < rows; j++) {
+//             for (int k = 0; k < cols; k++) {
+//                 layer_data[i][j][k] = rand() % 10 + 1.0;
+//             }
+//         }
+//     }
+// }
 
 
-#define models 10000
-#define N 1000000
-#define PREDICT_ITER 20000000
+// Mat1x1 naive_output;
 
+// Mat1x32 key;
+// //MM from first hidden layer output
+// Mat1x32 out_1;
+// Mat1x32 out_2;
 
-Mat1x1 naive_output;
+// Mat1x32 hidden_layer_1;
+// Mat32x32 hidden_layer_2;
+// Mat1x32 output_layer;
+// float lr_wt[2] = {3.11, 1.32};
+// float layer_data[models][32][1] = {{{0}}};
 
-Mat1x32 key;
-//MM from first hidden layer output
-Mat1x32 out_1;
-Mat1x32 out_2;
-
-Mat1x32 hidden_layer_1;
-Mat32x32 hidden_layer_2;
-Mat1x32 output_layer;
-float lr_wt[2] = {3.11, 1.32};
-float layer_data[models][32][1] = {{{0}}};
-
-inline void LoadData() {
-    randmat<1, 1, Mat1x1>(naive_output);
-    randmat<1, 32, Mat1x32>(key);
-    randmat<1, 32, Mat1x32>(hidden_layer_1);
-    randmat<32, 32, Mat32x32>(hidden_layer_2);
-    randmat<1, 32, Mat1x32>(output_layer);
-    load_layer_data(layer_data);
-}
+// inline void LoadData() {
+//     randmat<1, 1, Mat1x1>(naive_output);
+//     randmat<1, 32, Mat1x32>(key);
+//     randmat<1, 32, Mat1x32>(hidden_layer_1);
+//     randmat<32, 32, Mat32x32>(hidden_layer_2);
+//     randmat<1, 32, Mat1x32>(output_layer);
+//     load_layer_data(layer_data);
+// }
 
 inline void matmult_AVX_1x32x32(Mat1x32 &out, const Mat1x32 &A, const Mat32x32 &B) {
     _mm256_zeroupper();
@@ -161,17 +156,21 @@ inline void matmult_AVX_1x1x32(Mat1x32 &out, const Mat1x32 &A, const Mat1x32 &B)
 
 
 inline float matmult_AVX_1x32x1(const Mat1x32 &A, const Mat1x32 &B) {
-    __m256 result0 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0]);
-    result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[1]));
-    result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[2]));
-    result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[3]));
+    // __m256 result0 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0]);
+    // result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[1]));
+    // result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[2]));
+    // result0 = _mm256_add_ps(result0, _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[3]));
 
-    // horizontal add of 8 16-bit partial sums and return result
-    result0 = _mm256_hadd_ps(result0, result0);
-    result0 = _mm256_hadd_ps(result0, result0);
-    result0 = _mm256_hadd_ps(result0, result0);
+    // // horizontal add of 8 16-bit partial sums and return result
+    // result0 = _mm256_hadd_ps(result0, result0);
+    // result0 = _mm256_hadd_ps(result0, result0);
+    // result0 = _mm256_hadd_ps(result0, result0);
+    float result = 0;
+    for (int i = 0; i < 32; ++i) {
+        result += A.m[0][i] + B.m[0][i];
+    }
 
-    return result0[0];
+    return result;
 }
 
 template<typename T>
@@ -199,29 +198,29 @@ inline void relu(T &out) {
     }
 }
 
-inline float NaiveInference() {
-    MatMulNaive<1, 1, 32>(out_1, key, hidden_layer_1);
-    relu<1, 32>(out_1);
-    MatMulNaive<1, 32, 32>(out_2, out_1, hidden_layer_2);
-    relu<1, 32>(out_2);
-    MatMulNaive<1, 32, 1>(naive_output, out_2, output_layer);
+// inline float NaiveInference() {
+//     MatMulNaive<1, 1, 32>(out_1, key, hidden_layer_1);
+//     relu<1, 32>(out_1);
+//     MatMulNaive<1, 32, 32>(out_2, out_1, hidden_layer_2);
+//     relu<1, 32>(out_2);
+//     MatMulNaive<1, 32, 1>(naive_output, out_2, output_layer);
 
 
-    float pred = naive_output.m[0][0] * models / N;
-    return (pred * lr_wt[0] + lr_wt[1]);
-}
+//     float pred = naive_output.m[0][0] * models / N;
+//     return (pred * lr_wt[0] + lr_wt[1]);
+// }
 
-inline float SIMDInference() {
-    float position = 0.0;
+// inline float SIMDInference() {
+//     float position = 0.0;
 
-    matmult_AVX_1x1x32(out_1, key, hidden_layer_1);
-    relu<1, 32>(out_1);
-    matmult_AVX_1x32x32(out_2, out_1, hidden_layer_2);
-    relu<1, 32>(out_2);
-    position = matmult_AVX_1x32x1(out_2, output_layer);
+//     matmult_AVX_1x1x32(out_1, key, hidden_layer_1);
+//     relu<1, 32>(out_1);
+//     matmult_AVX_1x32x32(out_2, out_1, hidden_layer_2);
+//     relu<1, 32>(out_2);
+//     position = matmult_AVX_1x32x1(out_2, output_layer);
 
-    float pred = position * models / N;
-    return (pred * lr_wt[0] + lr_wt[1]);
-}
+//     float pred = position * models / N;
+//     return (pred * lr_wt[0] + lr_wt[1]);
+// }
 
 

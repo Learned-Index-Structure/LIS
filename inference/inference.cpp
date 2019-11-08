@@ -1,3 +1,5 @@
+// g++ -O3 -mavx2 -lpthread -std=c++11 -o inference inference.cpp
+
 #include <fstream>
 #include <utility>
 #include <cmath>
@@ -26,15 +28,15 @@ inline
 float solveSecondLayer(const float &firstLayerOutput, const vector<pair<int, int>> &linearModels, const int &N, vector<bool> isModel) {
     int modelIndex = firstLayerOutput * linearModels.size() / N;
     if (isModel[modelIndex]) {
-        return (firstLayerOutput * linearModels[i].first) + linearModels[i].second; 
+        return (firstLayerOutput * linearModels[modelIndex].first) + linearModels[modelIndex].second; 
     } else {
-        //TODO: search using B-Tree
+        return -1.0f;
     }
 }
 
 int main(int argc, char **argv) {
     if (argc != 4) {
-        cout<<"Usage:\ninference <data file> <first layer weights file> <second layer weights>"<endl;
+        cout<<"Usage:\ninference <data file> <first layer weights file> <second layer weights>"<<endl;
         exit(0);
     }
 
@@ -63,7 +65,7 @@ int main(int argc, char **argv) {
     Mat32x32 hidden_layer_2;
     Mat1x32 output_layer;
     Mat1x32 key;
-    key.m = {24.8999023438}; //TODO: randomly test for multiple keys
+    key.m[0][0] = {24.8999023438}; //TODO: randomly test for multiple keys
 
     ifstream firstLayerWeightsFile(argv[2]);
     if (firstLayerWeightsFile.is_open()) {
@@ -82,7 +84,7 @@ int main(int argc, char **argv) {
 
     ifstream secondLayerWeightsFile(argv[3]);
     int N, modelCount;
-    ifstream>>N>>modelCount;
+    secondLayerWeightsFile>>N>>modelCount;
     vector<pair<int,int>> linearModels;
     vector<pair<int, int>> errors;
     vector<bool> isModel;
@@ -91,7 +93,7 @@ int main(int argc, char **argv) {
         secondLayerWeightsFile>>temp1>>temp2;
         linearModels.push_back(make_pair(temp1, temp2));
         secondLayerWeightsFile>>temp1>>temp2;
-        errors.push_back(temp1, temp2);
+        errors.push_back(make_pair(temp1, temp2));
         secondLayerWeightsFile>>temp1>>temp2;
         secondLayerWeightsFile>>temp1;
         if (temp1 == 0.0f) {
@@ -102,7 +104,9 @@ int main(int argc, char **argv) {
     }
 
     float firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
-    float secondLayerAns = solveSecondLayer(firstLayerAns, linearModels, data.size());
+    cout<<"first layer ans = "<<firstLayerAns<<endl;
+    float secondLayerAns = solveSecondLayer(firstLayerAns, linearModels, data.size(), isModel);
+    cout<<"second layer ans = "<<secondLayerAns<<endl;
 
     int midSearchPoint = floor(secondLayerAns);
     float keyToSearch = key.m[0][0];
