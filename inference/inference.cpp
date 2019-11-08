@@ -26,6 +26,7 @@ float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_laye
 
 inline
 float solveSecondLayer(const float &firstLayerOutput, const float &key, const vector<pair<float, float>> &linearModels, const int &N, vector<bool> isModel) {
+    cout<<"model count = "<<linearModels.size()<<" N = "<<N<<endl;
     int modelIndex = firstLayerOutput * linearModels.size() / N;
     cout<<"model Index = "<<modelIndex<<endl;
     if (isModel[modelIndex]) {
@@ -57,8 +58,8 @@ int main(int argc, char **argv) {
             if (keys.size() == 0) {
                 offset = temp1;
             } else {
-                while (keys.size() > 0 && tempInt + 1 != keys.back()) {
-                    keys.push_back(tempInt+1);
+                while (tempInt != keys.back() + 1) {
+                    keys.push_back(keys.back() + 1);
                     data.push_back(data.back());
                 }
             }
@@ -67,11 +68,14 @@ int main(int argc, char **argv) {
         }
     }
 
+    cout<<"last index = "<<keys.back()<<endl;
+    cout<<"data size = "<<data.size()<<endl;
+
     Mat1x32 hidden_layer_1;
     Mat32x32 hidden_layer_2;
     Mat1x32 output_layer;
     Mat1x32 key;
-    key.m[0][0] = {24.8999023438}; //TODO: randomly test for multiple keys
+    key.m[0][0] = {261539591.000000}; //TODO: randomly test for multiple keys
     float keyToSearch = key.m[0][0];
 
     ifstream firstLayerWeightsFile(argv[2]);
@@ -91,7 +95,7 @@ int main(int argc, char **argv) {
 
     ifstream secondLayerWeightsFile(argv[3]);
     int N, modelCount;
-    secondLayerWeightsFile>>N>>modelCount;
+    secondLayerWeightsFile>>modelCount>>N;
     vector<pair<float,float>> linearModels;
     vector<pair<float, float>> errors;
     vector<bool> isModel;
