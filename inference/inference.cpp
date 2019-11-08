@@ -4,6 +4,7 @@
 
 #include "inference.hpp"
 #include "lms_algo.h"
+#include "btree/btree_map.h"
 
 using namespace std;
 typedef chrono::high_resolution_clock Clock;
@@ -27,7 +28,7 @@ float solveSecondLayer(const float &firstLayerOutput, const vector<pair<int, int
     if (isModel[modelIndex]) {
         return (firstLayerOutput * linearModels[i].first) + linearModels[i].second; 
     } else {
-        //TODO: pass to B-Tree
+        //TODO: search using B-Tree
     }
 }
 
@@ -37,21 +38,32 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
+    int dataLines;
+    vector<int> keys;
     vector<float> data;
     float temp1, temp2;
     int tempInt;
 
     ifstream dataFile(argv[1]);
     if (dataFile.is_open()) {
-        dataFile>>tempInt;
-        dataFile>>temp1;
-        data.push_back(temp1);
+        dataFile>>dataLines;
+        for (int i = 0; i < dataLines; ++i) {
+            dataFile>>tempInt;
+            dataFile>>temp1;
+            while (tempInt + 1 != keys.back()) {
+                keys.push_back(tempInt+1);
+                data.push_back(data.back());
+            }
+            keys.push_back(tempInt);
+            data.push_back(temp1);
+        }
     }
 
     Mat1x32 hidden_layer_1;
     Mat32x32 hidden_layer_2;
     Mat1x32 output_layer;
     Mat1x32 key;
+    key.m = {24.8999023438}; //TODO: randomly test for multiple keys
 
     ifstream firstLayerWeightsFile(argv[2]);
     if (firstLayerWeightsFile.is_open()) {
