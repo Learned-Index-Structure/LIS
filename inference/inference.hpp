@@ -167,7 +167,7 @@ inline float matmult_AVX_1x32x1(const Mat1x32 &A, const Mat1x32 &B) {
     // result0 = _mm256_hadd_ps(result0, result0);
     float result = 0;
     for (int i = 0; i < 32; ++i) {
-        result += A.m[0][i] + B.m[0][i];
+        result += A.m[0][i] * B.m[0][i];
     }
 
     return result;
