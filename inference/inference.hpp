@@ -154,6 +154,19 @@ inline void matmult_AVX_1x1x32(Mat1x32 &out, const Mat1x32 &A, const Mat1x32 &B)
     out.row[3] = _mm256_mul_ps(m_vect, B.row[3]);
 }
 
+inline float matmult_AVX_1x32x1_REF(const Mat1x32 &A, const Mat1x32 &B) {
+    __m256 result0 = {0.0};
+    result0 = _mm256_add_ps(result0, _mm256_mul_ps(A.row[0], B.row[0]));
+    result0 = _mm256_add_ps(result0, _mm256_mul_ps(A.row[1], B.row[1]));
+    result0 = _mm256_add_ps(result0, _mm256_mul_ps(A.row[2], B.row[2]));
+    result0 = _mm256_add_ps(result0, _mm256_mul_ps(A.row[3], B.row[3]));
+
+    float result = 0.0f;
+    for (int i = 0; i < 8; ++i) {
+        result += result0[i];
+    }
+    return result;
+}
 
 inline float matmult_AVX_1x32x1(const Mat1x32 &A, const Mat1x32 &B) {
     // __m256 result0 = _mm256_mul_ps(_mm256_broadcast_ss(&A.m[0][0]), B.row[0]);
