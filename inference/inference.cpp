@@ -6,7 +6,7 @@
 
 #include "inference.hpp"
 #include "lms_algo.h"
-#include "btree/btree_map.h"
+#include "btree.h"
 
 using namespace std;
 typedef chrono::high_resolution_clock Clock;
@@ -43,26 +43,26 @@ int main(int argc, char **argv) {
 
     float offset;
     int dataLines;
-    vector<int> keys;
+    vector<int> indices;
     vector<float> data;
     float temp1, temp2;
-    int tempInt;
+    int tempInt1, tempInt2;
 
     ifstream dataFile(argv[1]);
     if (dataFile.is_open()) {
         dataFile>>dataLines;
         for (int i = 0; i < dataLines; ++i) {
-            dataFile>>tempInt;
+            dataFile>>tempInt1;
             dataFile>>temp1;
-            if (keys.size() == 0) {
+            if (indices.size() == 0) {
                 offset = temp1;
             } else {
-                while (tempInt != keys.back() + 1) {
-                    keys.push_back(keys.back() + 1);
+                while (tempInt1 != indices.back() + 1) {
+                    indices.push_back(indices.back() + 1);
                     data.push_back(data.back());
                 }
             }
-            keys.push_back(tempInt);
+            indices.push_back(tempInt1);
             data.push_back(temp1-offset);
         }
     }
@@ -95,16 +95,20 @@ int main(int argc, char **argv) {
     vector<pair<float,float>> linearModels;
     vector<pair<float, float>> errors;
     vector<bool> isModel;
+    unordered_map<int, tree_type> btreeMap;
 
     for (int i = 0; i < (int) modelCount; ++i) {
         secondLayerWeightsFile>>temp1>>temp2;
         linearModels.push_back(make_pair(temp1, temp2));
         secondLayerWeightsFile>>temp1>>temp2;
         errors.push_back(make_pair(temp1, temp2));
-        secondLayerWeightsFile>>temp1>>temp2;
+        secondLayerWeightsFile>>tempInt1>>tempInt2;
         secondLayerWeightsFile>>temp1;
         if (temp1 == 0.0f) {
             isModel.push_back(false);
+            tree_type tree;
+            btreeMap[i] = tree;
+            btree_insert(tree, data, indices, tempInt1, tempInt2);
         } else {
             isModel.push_back(true);
         }
