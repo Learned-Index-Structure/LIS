@@ -25,13 +25,15 @@ float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_laye
 }
 
 inline
-float solveSecondLayer(const float &firstLayerOutput, const float &key, const vector<pair<float, float>> &linearModels, const float &N, vector<bool> isModel) {
+int solveSecondLayer(const float &firstLayerOutput, const float &key, 
+                const vector<pair<float, float>> &linearModels, const float &N, vector<bool> isModel,
+                const unordered_map<int, tree_type> &btreeMap) {
     float temp = firstLayerOutput * linearModels.size() / N;
     int modelIndex = (int) temp; //floor
     if (isModel[modelIndex]) {
         return (key * linearModels[modelIndex].first) + linearModels[modelIndex].second; 
     } else {
-        return -1.0f;
+        return btree_find(btreeMap.find(modelIndex)->second, key);
     }
 }
 
@@ -116,10 +118,9 @@ int main(int argc, char **argv) {
 
     float firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
     cout<<"first layer ans = "<<firstLayerAns<<endl;
-    float secondLayerAns = solveSecondLayer(firstLayerAns, keyToSearch, linearModels, data.size(), isModel);
+    int secondLayerAns = solveSecondLayer(firstLayerAns, keyToSearch, linearModels, data.size(), isModel, btreeMap);
     cout<<"second layer ans = "<<secondLayerAns<<endl;
 
-    int midSearchPoint = floor(secondLayerAns);
     int positionOfKey = BinarySearch<float, 512>(data, keyToSearch, midSearchPoint);
 
     return 0;
