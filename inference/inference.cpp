@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
     int secondLayerAns = solveSecondLayer(firstLayerAns, keyToSearch, linearModels, data.size(), isModel, btreeMap);
     cout<<"second layer ans = "<<secondLayerAns<<endl;
 
-    int positionOfKey = BinarySearch<float, 512>(data, keyToSearch, midSearchPoint);
+    int positionOfKey = BinarySearch<float, 512>(data, keyToSearch, secondLayerAns);
 
     return 0;
 }
