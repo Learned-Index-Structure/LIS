@@ -12,24 +12,19 @@ using namespace chrono;
 typedef std::chrono::high_resolution_clock Clock;
 
 int main() {
-    btree_insert(200000000, 400000000);
-    int key = 308020300;
+    btree::btree_map<float, uint32_t> btree;
+    vector<float> keys;
+    vector<uint64_t> values;
 
-    int start_index = 200000000;
-    int end_index = 203000000;
-    long long sum = 0;
-    int val = 0;
-    //    auto t1 = Clock::now();
-    unsigned long long tstart = __rdtsc();
-    for (int i = start_index; i < end_index; i++) {
-        val = btree_find(i);
-        sum += val;
+    for(int i = 0 ;i < 100; i++) {
+        keys.push_back(100 + i);
+        values.push_back(100001 + i);
     }
-    unsigned long long tend = __rdtsc();
-//    auto t2 = Clock::now();
-    cout << "Sum: " << sum << endl;
-    cout << "Time: " << (tend - tstart) / 2.7 / (end_index - start_index) << "ns" <<  endl;
-//    cout << "Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count()/ (end_index - start_index) << "ns" <<  endl;
 
-    return 0;
+    btree_insert(btree, keys, values, 0, 100);
+
+    for(int i = 0 ; i < 100 ; i+=5){
+        cout << (100 + i) << ", " << btree_find(btree, 100 + i) << endl;
+    }
+
 }
