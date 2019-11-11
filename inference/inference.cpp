@@ -28,8 +28,8 @@ float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_laye
 
 inline
 pair<int, float> solveSecondLayer(const float &firstLayerOutput, const float &key,
-                                const vector<pair<float, float> > &linearModels, const float &N, vector<bool> isModel,
-                                const unordered_map<int, tree_type> &btreeMap) {
+                                  const vector<pair<float, float> > &linearModels, const float &N, vector<bool> isModel,
+                                  const unordered_map<int, tree_type> &btreeMap) {
     float temp = firstLayerOutput * linearModels.size() / N;
     int modelIndex = (int) temp; //floor
     cout << "modelIndex = " << modelIndex << endl;
@@ -50,20 +50,24 @@ int main(int argc, char **argv) {
 
     double offset;
     int dataLines;
-    vector<int> indices;
-    vector<float> data;
+    vector<uint32_t> indices;
+    vector<double> data;
     float temp1, temp2, temp3;
-    int tempInt1, tempInt2;
+    uint32_t tempInt1, tempInt2;
     double tempDouble;
+
+    vector<double, uint32_t> keyList;
 
     ifstream dataFile(argv[1]);
     if (dataFile.is_open()) {
         dataFile >> dataLines;
         for (int i = 0; i < dataLines; ++i) {
-
-//            if(i > 10000000) break;
             dataFile >> tempInt1;
             dataFile >> tempDouble;
+            
+            if (i % 10 == 0)
+                keyList.push_back(tempDouble, tempInt1);
+
             if (indices.size() == 0) {
                 offset = tempDouble;
             } else {
@@ -77,13 +81,17 @@ int main(int argc, char **argv) {
         }
     }
     dataFile.close();
+    cout << "offset: " << offset << endl;
 
     Mat1x32 hidden_layer_1;
     Mat32x32 hidden_layer_2;
     Mat1x32 output_layer;
     Mat1x32 key;
-    key.m[0][0] = 1427781637776.1 - offset; //TODO: randomly test for multiple keys
-    float keyToSearch = key.m[0][0];
+//    key.m[0][0] = 1427781637776.1 - offset; //TODO: randomly test for multiple keys
+    key.m[0][0] = 1427787916750.0 - offset;
+
+//    float keyToSearch = key.m[0][0];
+    double keyToSearch = 1427787916750.0 - offset;
 
     ifstream firstLayerWeightsFile(argv[2]);
     if (firstLayerWeightsFile.is_open()) {
@@ -126,17 +134,17 @@ int main(int argc, char **argv) {
     float firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
     cout << "first layer ans = " << firstLayerAns << endl;
     pair<int, float> secondLayerAns = solveSecondLayer(firstLayerAns, keyToSearch, linearModels, data.size(), isModel,
-                                                     btreeMap);
+                                                       btreeMap);
     cout << "second layer ans = " << secondLayerAns.second << endl;
 
     cout << "threshold = " << threshold << endl;
 
     if (isModel[secondLayerAns.first]) {
-        int positionOfKey = binarySearchBranchless<float>(data, keyToSearch, secondLayerAns.second, threshold);
+        int positionOfKey = binarySearchBranchless<double>(data, keyToSearch, secondLayerAns.second, threshold);
         cout << "position of key = " << positionOfKey << " value = " << data[positionOfKey] << endl;
     } else {
         tree_type btree;
-        vector<float> keys;
+        vector<double> keys;
         vector<uint32_t> values;
 
         auto startIndex = (uint32_t) (secondLayerAns.second + errors[secondLayerAns.first].first);
@@ -154,9 +162,11 @@ int main(int argc, char **argv) {
         btree_insert(btree, keys, values, 0, keys.size());
 
         for (uint32_t i = startIndex; i <= endIndex; i++) {
-            cout << (uint32_t) data[i] << " " << indices[i] << endl;
+            printf("%f1000.0 ", data[i]);
+            cout << (double) data[i] << " " << indices[i] << endl;
         }
         cout << "key is at position: " << (uint32_t) keyToSearch << ", " << btree_find(btree, keyToSearch) << endl;
+        printf("KeyToSearch: %f1000.0", keyToSearch);
     }
 
     return 0;
