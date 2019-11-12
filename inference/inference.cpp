@@ -12,6 +12,13 @@
 using namespace std;
 typedef chrono::high_resolution_clock Clock;
 
+typedef int (*SecondLayerFun)(const float &, const float &, const double,
+                    const vector<pair<float, float> > &, const float &,
+                    unordered_map<int, tree_type> &, vector<double> &, int, int);
+
+#define NUM_ITERS 1000ll
+#define NO_OF_KEYS 10000ll
+
 inline
 float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_layer_2, const Mat1x32 &output_layer,
                       const Mat1x32 &key) {
@@ -26,20 +33,33 @@ float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_laye
     return matmult_AVX_1x32x1_REF(out_2, output_layer);
 }
 
+template< bool isModel>
 inline
-pair<int, float> solveSecondLayer(const float &firstLayerOutput, const float &key,
-                                  const vector<pair<float, float> > &linearModels, const float &N, vector<bool> isModel,
-                                  const unordered_map<int, tree_type> &btreeMap) {
-    float temp = firstLayerOutput * linearModels.size() / N;
-    int modelIndex = (int) temp; //floor
-    cout << "modelIndex = " << modelIndex << endl;
+int solveSecondLayer(const float &firstLayerOutput, const float &key, const double doubleKey,
+                                const vector<pair<float, float> > &linearModels, const float &N,
+                                unordered_map<int, tree_type> &btreeMap, vector<double> &data, int threshold,
+                                int modelIndex) {
 
-    cout << "linear regression" << endl;
-    cout << " m = " << linearModels[modelIndex].first << " c = " << linearModels[modelIndex].second << endl;
-    float temp2 = (key * linearModels[modelIndex].first) + linearModels[modelIndex].second;
-    cout << "float lr ans = " << temp2 << endl;
-    return make_pair(modelIndex, temp2);
+//    cout << "modelIndex = " << modelIndex << endl;
+    int ans;
+    if (isModel) {
+//        cout << "linear regression" << endl;
+        float temp2 = (key * linearModels[modelIndex].first) + linearModels[modelIndex].second;
+        ans = binarySearchBranchless<double>(data, doubleKey, temp2, threshold);
+    } else {
+//        cout << "btree" << endl;
+        ans = btree_find(btreeMap[modelIndex], doubleKey);
+    }
+    return ans;
+}
 
+
+vector<uint32_t> getKeyList(uint32_t dataLines) {
+    vector<uint32_t> keys;
+    for (int i = 0; i < NO_OF_KEYS; i++) {
+        keys.push_back((std::rand() % dataLines));
+    }
+    return keys;
 }
 
 int main(int argc, char **argv) {
@@ -56,17 +76,15 @@ int main(int argc, char **argv) {
     uint32_t tempInt1, tempInt2;
     double tempDouble;
 
-    vector<double, uint32_t> keyList;
-
     ifstream dataFile(argv[1]);
     if (dataFile.is_open()) {
         dataFile >> dataLines;
         for (int i = 0; i < dataLines; ++i) {
             dataFile >> tempInt1;
             dataFile >> tempDouble;
-            
-            if (i % 10 == 0)
-                keyList.push_back(tempDouble, tempInt1);
+
+//            if (i % 10 == 0)
+//                keyList.push_back(tempDouble, tempInt1);
 
             if (indices.size() == 0) {
                 offset = tempDouble;
@@ -81,17 +99,13 @@ int main(int argc, char **argv) {
         }
     }
     dataFile.close();
+
     cout << "offset: " << offset << endl;
 
     Mat1x32 hidden_layer_1;
     Mat32x32 hidden_layer_2;
     Mat1x32 output_layer;
     Mat1x32 key;
-//    key.m[0][0] = 1427781637776.1 - offset; //TODO: randomly test for multiple keys
-    key.m[0][0] = 1427787916750.0 - offset;
-
-//    float keyToSearch = key.m[0][0];
-    double keyToSearch = 1427787916750.0 - offset;
 
     ifstream firstLayerWeightsFile(argv[2]);
     if (firstLayerWeightsFile.is_open()) {
@@ -118,6 +132,7 @@ int main(int argc, char **argv) {
     vector<pair<float, float> > errors;
     vector<bool> isModel;
     unordered_map<int, tree_type> btreeMap;
+    vector<SecondLayerFun> secondLayerVec;
 
     for (int i = 0; i < (int) modelCount; ++i) {
         secondLayerWeightsFile >> temp1 >> temp2;
@@ -128,46 +143,53 @@ int main(int argc, char **argv) {
         secondLayerWeightsFile >> temp3;
 
         isModel.push_back(temp3 != 0.0f);
+        if (!isModel.back()) {
+            if (temp1 != -1.0f && temp2 != -1.0f) {
+                tree_type btree;
+                int start = (int) temp1;
+                int end = (int) temp2;
+                btree_insert(btree, data, indices, start, end);
+                btreeMap[i] = btree;
+            }
+            secondLayerVec.push_back(solveSecondLayer<false>);
+        } else {
+            secondLayerVec.push_back(solveSecondLayer<true>);
+        }
     }
     secondLayerWeightsFile.close();
 
-    float firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
-    cout << "first layer ans = " << firstLayerAns << endl;
-    pair<int, float> secondLayerAns = solveSecondLayer(firstLayerAns, keyToSearch, linearModels, data.size(), isModel,
-                                                       btreeMap);
-    cout << "second layer ans = " << secondLayerAns.second << endl;
+    vector<uint32_t> keyList = getKeyList(dataLines);
+    auto t1 = Clock::now();
+    uint64_t sum = 0;
+    for (int i = 0; i < keyList.size(); ++i) {
+        double keyToSearch = data[keyList[i]];
 
-    cout << "threshold = " << threshold << endl;
+//        cout<<"i = "<<i<<" data to search = "<<keyToSearch<<" expected = "<<keyList[i]<<endl;
 
-    if (isModel[secondLayerAns.first]) {
-        int positionOfKey = binarySearchBranchless<double>(data, keyToSearch, secondLayerAns.second, threshold);
-        cout << "position of key = " << positionOfKey << " value = " << data[positionOfKey] << endl;
-    } else {
-        tree_type btree;
-        vector<double> keys;
-        vector<uint32_t> values;
-
-        auto startIndex = (uint32_t) (secondLayerAns.second + errors[secondLayerAns.first].first);
-        auto endIndex = (uint32_t) (secondLayerAns.second + errors[secondLayerAns.first].second);
-
-        startIndex = (startIndex > 0) ? startIndex : 0;
-
-        cout << "btree: startIndex, endIndex: " << startIndex << ", " << endIndex << endl;
-
-        for (uint32_t i = startIndex; i <= endIndex; i++) {
-            keys.push_back(data[i]);
-            values.push_back(indices[i]);
+        key.m[0][0] = keyToSearch;
+        int secondLayerAns;
+        for (int j = 0; j < NUM_ITERS; ++j) {
+            float firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
+            float temp = firstLayerAns * linearModels.size() / N;
+            int modelIndex = (int) temp;
+//            cout << "first layer ans = " << firstLayerAns << endl;
+            secondLayerAns = secondLayerVec[modelIndex](firstLayerAns, keyToSearch, keyToSearch, linearModels,
+                                                             data.size(),
+                                                             btreeMap, data, threshold+1, modelIndex);
+            sum += secondLayerAns;
         }
-
-        btree_insert(btree, keys, values, 0, keys.size());
-
-        for (uint32_t i = startIndex; i <= endIndex; i++) {
-            printf("%f1000.0 ", data[i]);
-            cout << (double) data[i] << " " << indices[i] << endl;
-        }
-        cout << "key is at position: " << (uint32_t) keyToSearch << ", " << btree_find(btree, keyToSearch) << endl;
-        printf("KeyToSearch: %f1000.0", keyToSearch);
+//        if (keyList[i] != secondLayerAns) {
+//            cout<<"Wrong prediction!!!!!!!!!!!"<<endl;
+//            assert(false);
+//        }
+//        cout << "position of key = " << secondLayerAns << " value = " << keyToSearch << endl;
+//        cout<<"===========================\n\n";
     }
+    auto t2 = Clock::now();
+    cout<<"sum - "<<sum<<endl;
+    std::cout << "Time: "
+              << (chrono::duration<int64_t, std::nano>(t2 - t1).count()/NUM_ITERS)/NO_OF_KEYS
+              << " nanoseconds" << std::endl;
 
     return 0;
 }
