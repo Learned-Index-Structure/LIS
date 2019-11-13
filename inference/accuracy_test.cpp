@@ -1,4 +1,6 @@
 #include "inference.hpp"
+using namespace std;
+typedef chrono::high_resolution_clock Clock;
 
 inline double matmult_AVX_1x32x1_Naive(const Mat1x32d &A, const Mat1x32d &B) {
 
@@ -9,6 +11,15 @@ inline double matmult_AVX_1x32x1_Naive(const Mat1x32d &A, const Mat1x32d &B) {
 
     return result;
 }
+
+static void escape(void *p) {
+    asm volatile("" : : "g"(p) : "memory");
+}
+
+static void clobber() {
+    asm volatile("" : : : "memory");
+}
+
 
 int main() {
     int N_ITER = 1000000;
@@ -59,5 +70,44 @@ int main() {
     }
     std::cout << "Third Layer Passed." << std::endl;
 
+
+    //Matrix Multiplication Runtime
+    long sum = 0;
+    auto t1 = Clock::now();
+    for(int i =0; i < N_ITER; i++) {
+        randmatd<1, 32>(A);
+        randmatd<1, 32>(B);
+        randmatd<32, 32>(C);
+
+        matmult_AVX_1x1x32d(out_avx, A, B);
+        matmult_AVX_1x32x32d(out_avx, A, C);
+        sum  += matmult_AVX_1x32x1_REFd(A, B);
+    }
+
+    auto t2 = Clock::now();
+    std::cout << "Time: "
+              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / N_ITER)
+              << " nanoseconds" << std::endl;
+    cout << sum << endl;
+
+
+    //Matrix Initialization Runtime
+    sum = 0;
+    t1 = Clock::now();
+    for(int i =0; i < N_ITER; i++) {
+        escape(&A);
+        escape(&B);
+        escape(&C);
+        randmatd<1, 32>(A);
+        randmatd<1, 32>(B);
+        randmatd<32, 32>(C);
+        clobber();
+    }
+
+    t2 = Clock::now();
+    std::cout << "LOAD Time: "
+              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / N_ITER)
+              << " nanoseconds" << std::endl;
+    cout << sum << endl;
 
 }
