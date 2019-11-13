@@ -33,7 +33,7 @@ float solveFirstLayer(const Mat1x32d &hidden_layer_1, const Mat32x32d &hidden_la
     return matmult_AVX_1x32x1_REFd(out_2, output_layer);
 }
 
-template< bool isModel>
+template<bool isModel>
 inline
 int solveSecondLayer(const double &firstLayerOutput, const double &key, const double doubleKey,
                      const vector<pair<double, double> > &linearModels, const double &N,
@@ -166,11 +166,11 @@ int main(int argc, char **argv) {
 //            cout << "first layer ans = " << firstLayerAns << endl;
             secondLayerAns = secondLayerVec[modelIndex](firstLayerAns, keyToSearch, keyToSearch, linearModels,
                                                         data.size(),
-                                                        btreeMap, data, threshold+1, modelIndex);
+                                                        btreeMap, data, threshold + 1, modelIndex);
             sum += secondLayerAns;
         }
-        if (keyList[i] != secondLayerAns) {
-            cout<<"Wrong prediction!!!!!!!!!!!"<<endl;
+        if (!((keyList[i] == secondLayerAns) || (data[keyList[i]] == data[secondLayerAns]))) {
+            cout << "Wrong prediction!!!!!!!!!!!" << endl;
             cout << "Actual Key: " << keyList[i] << ", Predicted Key: " << secondLayerAns << endl;
             assert(false);
         }
@@ -178,9 +178,9 @@ int main(int argc, char **argv) {
 //        cout<<"===========================\n\n";
     }
     auto t2 = Clock::now();
-    cout<<"sum - "<<sum<<endl;
+    cout << "sum - " << sum << endl;
     std::cout << "Time: "
-              << (chrono::duration<int64_t, std::nano>(t2 - t1).count()/NUM_ITERS)/NO_OF_KEYS
+              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
               << " nanoseconds" << std::endl;
 
     return 0;

@@ -13,8 +13,8 @@ using namespace std;
 typedef chrono::high_resolution_clock Clock;
 
 typedef int (*SecondLayerFun)(const float &, const float &, const double,
-                    const vector<pair<float, float> > &, const float &,
-                    unordered_map<int, tree_type> &, vector<double> &, int, int);
+                              const vector<pair<float, float> > &, const float &,
+                              unordered_map<int, tree_type> &, vector<double> &, int, int);
 
 #define NUM_ITERS 1000ll
 #define NO_OF_KEYS 10000ll
@@ -33,12 +33,12 @@ float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_laye
     return matmult_AVX_1x32x1_REF(out_2, output_layer);
 }
 
-template< bool isModel>
+template<bool isModel>
 inline
 int solveSecondLayer(const float &firstLayerOutput, const float &key, const double doubleKey,
-                                const vector<pair<float, float> > &linearModels, const float &N,
-                                unordered_map<int, tree_type> &btreeMap, vector<double> &data, int threshold,
-                                int modelIndex) {
+                     const vector<pair<float, float> > &linearModels, const float &N,
+                     unordered_map<int, tree_type> &btreeMap, vector<double> &data, int threshold,
+                     int modelIndex) {
 
 //    cout << "modelIndex = " << modelIndex << endl;
     int ans;
@@ -175,21 +175,22 @@ int main(int argc, char **argv) {
             int modelIndex = (int) temp;
 //            cout << "first layer ans = " << firstLayerAns << endl;
             secondLayerAns = secondLayerVec[modelIndex](firstLayerAns, keyToSearch, keyToSearch, linearModels,
-                                                             data.size(),
-                                                             btreeMap, data, threshold+1, modelIndex);
+                                                        data.size(),
+                                                        btreeMap, data, threshold + 1, modelIndex);
             sum += secondLayerAns;
         }
-//        if (keyList[i] != secondLayerAns) {
-//            cout<<"Wrong prediction!!!!!!!!!!!"<<endl;
-//            assert(false);
-//        }
+        if (!((keyList[i] == secondLayerAns) || (data[keyList[i]] == data[secondLayerAns]))) {
+            cout << "Wrong prediction!!!!!!!!!!!" << endl;
+            cout << "Actual Key: " << keyList[i] << ", Predicted Key: " << secondLayerAns << endl;
+            assert(false);
+        }
 //        cout << "position of key = " << secondLayerAns << " value = " << keyToSearch << endl;
 //        cout<<"===========================\n\n";
     }
     auto t2 = Clock::now();
-    cout<<"sum - "<<sum<<endl;
+    cout << "sum - " << sum << endl;
     std::cout << "Time: "
-              << (chrono::duration<int64_t, std::nano>(t2 - t1).count()/NUM_ITERS)/NO_OF_KEYS
+              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
               << " nanoseconds" << std::endl;
 
     return 0;
