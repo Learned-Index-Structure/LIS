@@ -24,6 +24,18 @@ union Mat32x32 {
     __m256 row[32][4];
 };
 
+
+union Mat1x32d {
+    double m[1][32];
+    __m256d row[8];
+};
+
+union Mat32x32d {
+    double m[32][32];
+    __m256d row[32][8];
+};
+
+
 float val = 1;
 
 inline static float randf() {
@@ -161,7 +173,7 @@ inline float matmult_AVX_1x32x1_REF(const Mat1x32 &A, const Mat1x32 &B) {
     result0 = _mm256_add_ps(result0, _mm256_mul_ps(A.row[2], B.row[2]));
     result0 = _mm256_add_ps(result0, _mm256_mul_ps(A.row[3], B.row[3]));
 
-    float result = 0.0f;
+    double result = 0.0f;
     for (int i = 0; i < 8; ++i) {
         result += result0[i];
     }
@@ -237,3 +249,84 @@ inline void relu(T &out) {
 // }
 
 
+
+double doubleVal = 1.0232;
+
+inline static float randd() {
+    if(doubleVal > 10000)
+        doubleVal = 1.4532;
+    return doubleVal++;
+}
+
+
+template<size_t N, size_t M, typename MatType>
+inline static void randmatd(MatType &mat) {
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++)
+            mat.m[i][j] = randd();
+}
+
+
+inline void matmult_AVX_1x32x32d(Mat1x32d &out, const Mat1x32d &A, const Mat32x32d &B) {
+    _mm256_zeroupper();
+    __m256d result0 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][0]);
+    __m256d result1 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][1]);
+    __m256d result2 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][2]);
+    __m256d result3 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][3]);
+    __m256d result4 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][4]);
+    __m256d result5 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][5]);
+    __m256d result6 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][6]);
+    __m256d result7 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][7]);
+
+    for (int i = 1; i < 32; i++) {
+        result0 = _mm256_add_pd(result0, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][0]));
+        result1 = _mm256_add_pd(result1, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][1]));
+        result2 = _mm256_add_pd(result2, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][2]));
+        result3 = _mm256_add_pd(result3, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][3]));
+        result4 = _mm256_add_pd(result4, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][4]));
+        result5 = _mm256_add_pd(result5, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][5]));
+        result6 = _mm256_add_pd(result6, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][6]));
+        result7 = _mm256_add_pd(result7, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][7]));
+    }
+
+    out.row[0] = result0;
+    out.row[1] = result1;
+    out.row[2] = result2;
+    out.row[3] = result3;
+    out.row[4] = result4;
+    out.row[5] = result5;
+    out.row[6] = result6;
+    out.row[7] = result7;
+}
+
+
+inline void matmult_AVX_1x1x32d(Mat1x32d &out, const Mat1x32d &A, const Mat1x32d &B) {
+    __m256d m_vect = _mm256_broadcast_sd(&A.m[0][0]);
+    out.row[0] = _mm256_mul_pd(m_vect, B.row[0]);
+    out.row[1] = _mm256_mul_pd(m_vect, B.row[1]);
+    out.row[2] = _mm256_mul_pd(m_vect, B.row[2]);
+    out.row[3] = _mm256_mul_pd(m_vect, B.row[3]);
+    out.row[4] = _mm256_mul_pd(m_vect, B.row[4]);
+    out.row[5] = _mm256_mul_pd(m_vect, B.row[5]);
+    out.row[6] = _mm256_mul_pd(m_vect, B.row[6]);
+    out.row[7] = _mm256_mul_pd(m_vect, B.row[7]);
+}
+
+inline double matmult_AVX_1x32x1_REFd(const Mat1x32d &A, const Mat1x32d &B) {
+    __m256d result0 = {0.0};
+
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[0], B.row[0]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[1], B.row[1]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[2], B.row[2]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[3], B.row[3]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[4], B.row[4]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[5], B.row[5]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[6], B.row[6]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[7], B.row[7]));
+
+    double result = 0.0f;
+    for (int i = 0; i < 4; ++i) {
+        result += result0[i];
+    }
+    return result;
+}
