@@ -22,7 +22,7 @@ typedef int (*SecondLayerFun)(const float &, const float &, const double,
 inline
 float solveFirstLayer(const Mat1x32 &hidden_layer_1, const Mat32x32 &hidden_layer_2, const Mat1x32 &output_layer,
                       const Mat1x32 &key) {
-    //MM from first hidden layer output
+
     Mat1x32 out_1;
     Mat1x32 out_2;
 
@@ -39,21 +39,17 @@ int solveSecondLayer(const float &firstLayerOutput, const float &key, const doub
                      const vector<pair<float, float> > &linearModels, const float &N,
                      unordered_map<int, tree_type> &btreeMap, vector<double> &data, int threshold,
                      int modelIndex) {
-
-//    cout << "modelIndex = " << modelIndex << endl;
     int ans;
     if (isModel) {
-//        cout << "linear regression" << endl;
         float temp2 = (key * linearModels[modelIndex].first) + linearModels[modelIndex].second;
         ans = binarySearchBranchless<double>(data, doubleKey, temp2, threshold);
     } else {
-//        cout << "btree" << endl;
         ans = btree_find(btreeMap[modelIndex], doubleKey);
     }
     return ans;
 }
 
-
+inline
 vector<uint32_t> getKeyList(uint32_t dataLines) {
     vector<uint32_t> keys;
     for (int i = 0; i < NO_OF_KEYS; i++) {
@@ -83,9 +79,6 @@ int main(int argc, char **argv) {
             dataFile >> tempInt1;
             dataFile >> tempDouble;
 
-//            if (i % 10 == 0)
-//                keyList.push_back(tempDouble, tempInt1);
-
             if (indices.size() == 0) {
                 offset = tempDouble;
             } else {
@@ -99,8 +92,6 @@ int main(int argc, char **argv) {
         }
     }
     dataFile.close();
-
-    cout << "offset: " << offset << endl;
 
     Mat1x32 hidden_layer_1;
     Mat32x32 hidden_layer_2;
@@ -160,8 +151,9 @@ int main(int argc, char **argv) {
     secondLayerWeightsFile.close();
 
     vector<uint32_t> keyList = getKeyList(dataLines);
-    auto t1 = Clock::now();
     uint64_t sum = 0;
+
+    auto t1 = Clock::now();
     for (int i = 0; i < keyList.size(); ++i) {
         double keyToSearch = data[keyList[i]];
 
@@ -179,16 +171,16 @@ int main(int argc, char **argv) {
                                                         btreeMap, data, threshold + 1, modelIndex);
             sum += secondLayerAns;
         }
-        if (!((keyList[i] == secondLayerAns) || (data[keyList[i]] == data[secondLayerAns]))) {
-            cout << "Wrong prediction!!!!!!!!!!!" << endl;
-            cout << "Actual Key: " << keyList[i] << ", Predicted Key: " << secondLayerAns << endl;
-            assert(false);
-        }
+//        if (!((keyList[i] == secondLayerAns) || (data[keyList[i]] == data[secondLayerAns]))) {
+//            cout << "Wrong prediction!!!!!!!!!!!" << endl;
+//            cout << "Actual Key: " << keyList[i] << ", Predicted Key: " << secondLayerAns << endl;
+//            assert(false);
+//        }
 //        cout << "position of key = " << secondLayerAns << " value = " << keyToSearch << endl;
 //        cout<<"===========================\n\n";
     }
     auto t2 = Clock::now();
-    cout << "sum - " << sum << endl;
+    cout << "sum = " << sum << endl;
     std::cout << "Time: "
               << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
               << " nanoseconds" << std::endl;

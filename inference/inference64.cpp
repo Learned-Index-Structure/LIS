@@ -16,13 +16,21 @@ typedef int (*SecondLayerFun)(const double &, const double &, const double,
                               const vector<pair<double, double> > &, const double &,
                               unordered_map<int, tree_type> &, vector<double> &, int, int);
 
-#define NUM_ITERS 1000ll
-#define NO_OF_KEYS 10000ll
+#define NUM_ITERS 1ll
+#define NO_OF_KEYS 500000ll
+
+template<typename T>
+void print(T out) {
+    for (int i = 0; i < 32; i++) {
+        printf("%f1000", out.m[0][i]);
+        cout << endl;
+    }
+    cout << endl;
+}
 
 inline
-float solveFirstLayer(const Mat1x32d &hidden_layer_1, const Mat32x32d &hidden_layer_2, const Mat1x32d &output_layer,
-                      const Mat1x32d &key) {
-
+double solveFirstLayer(const Mat1x32d &hidden_layer_1, const Mat32x32d &hidden_layer_2, const Mat1x32d &output_layer,
+                       const Mat1x32d &key) {
     Mat1x32d out_1;
     Mat1x32d out_2;
 
@@ -30,6 +38,7 @@ float solveFirstLayer(const Mat1x32d &hidden_layer_1, const Mat32x32d &hidden_la
     relu<1, 32>(out_1);
     matmult_AVX_1x32x32d(out_2, out_1, hidden_layer_2);
     relu<1, 32>(out_2);
+
     return matmult_AVX_1x32x1_REFd(out_2, output_layer);
 }
 
@@ -152,33 +161,34 @@ int main(int argc, char **argv) {
     secondLayerWeightsFile.close();
 
     vector<uint32_t> keyList = getKeyList(dataLines);
-    auto t1 = Clock::now();
     uint64_t sum = 0;
-    for (int i = 0; i < keyList.size(); ++i) {
-        double keyToSearch = data[keyList[i]];
+    double keyToSearch;
 
+    auto t1 = Clock::now();
+    for (int i = 0; i < keyList.size(); ++i) {
+        keyToSearch = data[keyList[i]];
         key.m[0][0] = keyToSearch;
+
         int secondLayerAns;
         for (int j = 0; j < NUM_ITERS; ++j) {
-            float firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
-            float temp = firstLayerAns * linearModels.size() / N;
+            double firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
+            double temp = firstLayerAns * linearModels.size() / N;
             int modelIndex = (int) temp;
-//            cout << "first layer ans = " << firstLayerAns << endl;
+
             secondLayerAns = secondLayerVec[modelIndex](firstLayerAns, keyToSearch, keyToSearch, linearModels,
                                                         data.size(),
                                                         btreeMap, data, threshold + 1, modelIndex);
             sum += secondLayerAns;
         }
-        if (!((keyList[i] == secondLayerAns) || (data[keyList[i]] == data[secondLayerAns]))) {
-            cout << "Wrong prediction!!!!!!!!!!!" << endl;
-            cout << "Actual Key: " << keyList[i] << ", Predicted Key: " << secondLayerAns << endl;
-            assert(false);
-        }
-//        cout << "position of key = " << secondLayerAns << " value = " << keyToSearch << endl;
-//        cout<<"===========================\n\n";
+//        if (!((keyList[i] == secondLayerAns) || (data[keyList[i]] == data[secondLayerAns]))) {
+//            cout << "Wrong prediction!!!!!!!!!!!" << endl;
+//            cout << "Actual Key: " << keyList[i] << ", Predicted Key: " << secondLayerAns << endl;
+//            assert(false);
+//        }
+
     }
     auto t2 = Clock::now();
-    cout << "sum - " << sum << endl;
+    cout << "sum = " << sum << endl;
     std::cout << "Time: "
               << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
               << " nanoseconds" << std::endl;
