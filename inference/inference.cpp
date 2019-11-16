@@ -4,6 +4,7 @@
 #include <utility>
 #include <cmath>
 #include <unordered_map>
+#include <tuple>
 
 #include "inference.hpp"
 #include "lms_algo.h"
@@ -12,9 +13,9 @@
 using namespace std;
 typedef chrono::high_resolution_clock Clock;
 
-typedef int (*SecondLayerFun)(const double &, const double &, const double,
+typedef int (*SecondLayerFun)(const double &, const double &, const uint64_t,
                               const vector<pair<double, double> > &, const double &,
-                              unordered_map<int, tree_type> &, vector<double> &, int, int);
+                              unordered_map<int, tree_type> &, vector<uint64_t> &, int, int);
 
 #define NUM_ITERS 1ll
 #define NO_OF_KEYS 500000ll
@@ -42,30 +43,67 @@ double solveFirstLayer(const Mat1x32d &hidden_layer_1, const Mat32x32d &hidden_l
     return matmult_AVX_1x32x1_REFd(out_2, output_layer);
 }
 
+static uint32_t midPoint;
+
 template<bool isModel>
 inline
-int solveSecondLayer(const double &firstLayerOutput, const double &key, const double doubleKey,
+int solveSecondLayer(const double &firstLayerOutput, const double &key, const uint64_t intKey,
                      const vector<pair<double, double> > &linearModels, const double &N,
-                     unordered_map<int, tree_type> &btreeMap, vector<double> &data, int threshold,
+                     unordered_map<int, tree_type> &btreeMap, vector<uint64_t> &data, int threshold,
                      int modelIndex) {
 
-    int ans;
     if (isModel) {
-        double temp2 = (key * linearModels[modelIndex].first) + linearModels[modelIndex].second;
-        ans = binarySearchBranchless<double>(data, doubleKey, temp2, threshold);
+        midPoint = (key * linearModels[modelIndex].first) + linearModels[modelIndex].second;
+        return binarySearchBranchless<uint64_t>(data, intKey, temp2, threshold);
     } else {
-        ans = btree_find(btreeMap[modelIndex], doubleKey);
+        return btree_find(btreeMap[modelIndex], intKey);
     }
-    return ans;
 }
 
 
-vector<uint32_t> getKeyList(uint32_t dataLines) {
-    vector<uint32_t> keys;
+tuple<vector<double>, vector<uint64_t>> getKeyList(vector<uint64_t> data, uint32_t dataLines, double maxValue) {
+    vector<double> keys;
+    vector<uint64_t> intKeys;
     for (int i = 0; i < NO_OF_KEYS; i++) {
-        keys.push_back((std::rand() % dataLines));
+        keys.push_back((data[(std::rand() % dataLines)] / ((double) 100))/maxValue);
+        intKeys.push_back(data[(std::rand() % dataLines)]);
     }
-    return keys;
+    return make_tuple(keys, intKeys);
+}
+
+tuple<vector<uint32_t>, vector<uint64_t>, double, double> readData(char* dataFileName) {
+    ifstream dataFile(dataFileName);
+    if (dataFile.is_open()) {
+        int dataLines;
+        uint64_t maxKey;
+        uint32_t tempInt32;
+        double tempDouble, offset, maxValue;
+
+        vector<uint64_t> data;
+        vector<uint32_t> indices;
+
+        dataFile>>dataLines>>maxKey>>maxValue;
+        for (int i = 0; i < dataLines; ++i) {
+            dataFile >> tempInt32;
+            dataFile >> tempDouble;
+
+            if (indices.size() == 0) {
+                offset = tempDouble;
+            } else {
+                while (i < dataLines && tempInt32 != indices.back() + 1) {
+                    indices.push_back(indices.back() + 1);
+                    data.push_back(data.back());
+                }
+            }
+            indices.push_back(tempInt32);
+            data.push_back((uint64_t)((tempDouble - offset) * 100));
+        }
+        dataFile.close();
+        return make_tuple(indices, data, offset, maxValue);
+    } else {
+        cout<<"Unable to open data file."<<endl;
+        exit(0);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -74,34 +112,15 @@ int main(int argc, char **argv) {
         exit(0);
     }
 
-    double offset;
+    double offset, maxValue;
     int dataLines;
     vector<uint32_t> indices;
-    vector<double> data;
+    vector<uint64_t> data;
     double temp1, temp2, temp3;
     uint32_t tempInt1, tempInt2;
     double tempDouble;
 
-    ifstream dataFile(argv[1]);
-    if (dataFile.is_open()) {
-        dataFile >> dataLines;
-        for (int i = 0; i < dataLines; ++i) {
-            dataFile >> tempInt1;
-            dataFile >> tempDouble;
-
-            if (indices.size() == 0) {
-                offset = tempDouble;
-            } else {
-                while (i < dataLines && tempInt1 != indices.back() + 1) {
-                    indices.push_back(indices.back() + 1);
-                    data.push_back(data.back());
-                }
-            }
-            indices.push_back(tempInt1);
-            data.push_back(tempDouble - offset);
-        }
-    }
-    dataFile.close();
+    tie(indices, data, offset, maxValue) = readData(argv[1]);
 
     Mat1x32d hidden_layer_1;
     Mat32x32d hidden_layer_2;
@@ -160,22 +179,26 @@ int main(int argc, char **argv) {
     }
     secondLayerWeightsFile.close();
 
-    vector<uint32_t> keyList = getKeyList(dataLines);
+    vector<double> keyList; vector<uint64_t> keyListInt;
+    tie(keyList, keyListInt) = getKeyList(data, dataLines, maxValue);
     uint64_t sum = 0;
     double keyToSearch;
+    double firstLayerAns;
+    int secondLayerAns;
+    int modelIndex;
+    int i, j;
 
     auto t1 = Clock::now();
-    for (int i = 0; i < keyList.size(); ++i) {
-        keyToSearch = data[keyList[i]];
-        key.m[0][0] = keyToSearch;
+    for (j = 0; j < NUM_ITERS; ++j) {
+        
+        for (i = 0; i < keyList.size(); ++i) {
+            keyToSearch = keyList[i];
+            key.m[0][0] = keyToSearch;
+            firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
+            tempDouble = firstLayerAns * linearModels.size() / N;
+            modelIndex = (int) tempDouble;
 
-        int secondLayerAns;
-        for (int j = 0; j < NUM_ITERS; ++j) {
-            double firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
-            double temp = firstLayerAns * linearModels.size() / N;
-            int modelIndex = (int) temp;
-
-            secondLayerAns = secondLayerVec[modelIndex](firstLayerAns, keyToSearch, keyToSearch, linearModels,
+            secondLayerAns = secondLayerVec[modelIndex](firstLayerAns, keyToSearch, keyListInt[i], linearModels,
                                                         data.size(),
                                                         btreeMap, data, threshold + 1, modelIndex);
             sum += secondLayerAns;

@@ -17,7 +17,7 @@ inline uint32_t bsr(uint32_t x) {
 }
 
 template<typename T>
-inline uint32_t binarySearchBranchless(const std::vector<T> &arr, const T key, int mid, int threshold) {
+inline uint32_t binarySearchBranchless(const std::vector<T> &arr, const T key, uint32_t mid, int threshold) {
 //    cout << "searching for key = " << key << endl;
     int n = threshold * 2;
     intptr_t pos = -1;
