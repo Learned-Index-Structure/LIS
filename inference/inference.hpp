@@ -36,6 +36,17 @@ union Mat32x32d {
 };
 
 
+union Mat1x16 {
+    double m[1][16];
+    __m256d row[4];
+};
+
+union Mat16x16 {
+    double m[16][16];
+    __m256d row[16][4];
+};
+
+
 float val = 1;
 
 inline static float randf() {
@@ -253,7 +264,7 @@ inline void relu(T &out) {
 double doubleVal = 1.0232;
 
 inline static float randd() {
-    if(doubleVal > 10000)
+    if (doubleVal > 10000)
         doubleVal = 1.4532;
     return doubleVal++;
 }
@@ -323,6 +334,67 @@ inline double matmult_AVX_1x32x1_REFd(const Mat1x32d &A, const Mat1x32d &B) {
     result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[5], B.row[5]));
     result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[6], B.row[6]));
     result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[7], B.row[7]));
+
+    double result = 0.0f;
+    for (int i = 0; i < 4; ++i) {
+        result += result0[i];
+    }
+    return result;
+}
+
+
+// 16-Neurons Matrix Multiplication
+
+inline void addBiasNaive(Mat1x16 &out, Mat1x16 &A, Mat1x16 &B) {
+    for (int i = 0; i < 16; i++) {
+        out.m[0][i] = A.m[0][i] + B.m[0][i];
+    }
+}
+
+inline void addBias(Mat1x16 &out, const Mat1x16 &A, const Mat1x16 &B) {
+    out.row[0] = _mm256_add_pd(A.row[0], B.row[0]);
+    out.row[1] = _mm256_add_pd(A.row[1], B.row[1]);
+    out.row[2] = _mm256_add_pd(A.row[2], B.row[2]);
+    out.row[3] = _mm256_add_pd(A.row[3], B.row[3]);
+}
+
+
+inline void matmult_AVX_1x16x16(Mat1x16 &out, const Mat1x16 &A, const Mat16x16 &B) {
+    _mm256_zeroupper();
+    __m256d result0 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][0]);
+    __m256d result1 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][1]);
+    __m256d result2 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][2]);
+    __m256d result3 = _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][0]), B.row[0][3]);
+
+    for (int i = 1; i < 16; i++) {
+        result0 = _mm256_add_pd(result0, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][0]));
+        result1 = _mm256_add_pd(result1, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][1]));
+        result2 = _mm256_add_pd(result2, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][2]));
+        result3 = _mm256_add_pd(result3, _mm256_mul_pd(_mm256_broadcast_sd(&A.m[0][i]), B.row[i][3]));
+    }
+
+    out.row[0] = result0;
+    out.row[1] = result1;
+    out.row[2] = result2;
+    out.row[3] = result3;
+}
+
+
+inline void matmult_AVX_1x1x16(Mat1x16 &out, const Mat1x16 &A, const Mat1x16 &B) {
+    __m256d m_vect = _mm256_broadcast_sd(&A.m[0][0]);
+    out.row[0] = _mm256_mul_pd(m_vect, B.row[0]);
+    out.row[1] = _mm256_mul_pd(m_vect, B.row[1]);
+    out.row[2] = _mm256_mul_pd(m_vect, B.row[2]);
+    out.row[3] = _mm256_mul_pd(m_vect, B.row[3]);
+}
+
+inline double matmult_AVX_1x16x1_REF(const Mat1x16 &A, const Mat1x16 &B) {
+    __m256d result0 = {0.0};
+
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[0], B.row[0]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[1], B.row[1]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[2], B.row[2]));
+    result0 = _mm256_add_pd(result0, _mm256_mul_pd(A.row[3], B.row[3]));
 
     double result = 0.0f;
     for (int i = 0; i < 4; ++i) {
