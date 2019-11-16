@@ -17,8 +17,8 @@ typedef int (*SecondLayerFun)(const double &, const double &, const uint64_t,
                               const vector<pair<double, double> > &, const double &,
                               unordered_map<int, tree_type> &, vector<uint64_t> &, int, int);
 
-#define NUM_ITERS 1ll
-#define NO_OF_KEYS 500000ll
+#define NUM_ITERS 1000ll
+#define NO_OF_KEYS 5000ll
 
 template<typename T>
 void print(T out) {
@@ -29,18 +29,21 @@ void print(T out) {
     cout << endl;
 }
 
+static Mat1x16 out_1;
+static Mat1x16 out_2;
+
 inline
-double solveFirstLayer(const Mat1x32d &hidden_layer_1, const Mat32x32d &hidden_layer_2, const Mat1x32d &output_layer,
-                       const Mat1x32d &key) {
-    Mat1x32d out_1;
-    Mat1x32d out_2;
+double solveFirstLayer(const Mat1x16 &hidden_layer_1, const Mat16x16 &hidden_layer_2, const Mat1x16 &output_layer,
+                       const Mat1x16 &key, const Mat1x16 &bias_1, const Mat1x16 &bias_2, const double &bias_3) {
 
-    matmult_AVX_1x1x32d(out_1, key, hidden_layer_1);
-    relu<1, 32>(out_1);
-    matmult_AVX_1x32x32d(out_2, out_1, hidden_layer_2);
-    relu<1, 32>(out_2);
+    matmult_AVX_1x1x16(out_1, key, hidden_layer_1);
+    addBias(out_1, out_1, bias_1);
+    relu<1, 16>(out_1);
+    matmult_AVX_1x16x16(out_2, out_1, hidden_layer_2);
+    addBias(out_2, out_2, bias_2);
+    relu<1, 16>(out_2);
 
-    return matmult_AVX_1x32x1_REFd(out_2, output_layer);
+    return matmult_AVX_1x16x1_REF(out_2, output_layer) + bias_3;
 }
 
 static uint32_t midPoint;
@@ -54,7 +57,7 @@ int solveSecondLayer(const double &firstLayerOutput, const double &key, const ui
 
     if (isModel) {
         midPoint = (key * linearModels[modelIndex].first) + linearModels[modelIndex].second;
-        return binarySearchBranchless<uint64_t>(data, intKey, temp2, threshold);
+        return binarySearchBranchless<uint64_t>(data, intKey, midPoint, threshold);
     } else {
         return btree_find(btreeMap[modelIndex], intKey);
     }
@@ -122,24 +125,33 @@ int main(int argc, char **argv) {
 
     tie(indices, data, offset, maxValue) = readData(argv[1]);
 
-    Mat1x32d hidden_layer_1;
-    Mat32x32d hidden_layer_2;
-    Mat1x32d output_layer;
-    Mat1x32d key;
+    Mat1x16 hidden_layer_1;
+    Mat16x16 hidden_layer_2;
+    Mat1x16 output_layer, bias_1, bias_2;
+    
+    Mat1x16 key;
+    double bias_3;
 
     ifstream firstLayerWeightsFile(argv[2]);
     if (firstLayerWeightsFile.is_open()) {
-        for (int i = 0; i < 32; ++i) {
+        for (int i = 0; i < 16; ++i) {
             firstLayerWeightsFile >> hidden_layer_1.m[0][i];
         }
-        for (int i = 0; i < 32; ++i) {
-            for (int j = 0; j < 32; ++j) {
+        for (int i = 0; i < 16; ++i) {
+            firstLayerWeightsFile >> bias_1.m[0][i];
+        }
+        for (int i = 0; i < 16; ++i) {
+            for (int j = 0; j < 16; ++j) {
                 firstLayerWeightsFile >> hidden_layer_2.m[j][i];
             }
         }
-        for (int i = 0; i < 32; ++i) {
+        for (int i = 0; i < 16; ++i) {
+            firstLayerWeightsFile >> bias_2.m[0][i];
+        }
+        for (int i = 0; i < 16; ++i) {
             firstLayerWeightsFile >> output_layer.m[0][i];
         }
+        firstLayerWeightsFile >> bias_3;
     }
     firstLayerWeightsFile.close();
 
@@ -194,7 +206,7 @@ int main(int argc, char **argv) {
         for (i = 0; i < keyList.size(); ++i) {
             keyToSearch = keyList[i];
             key.m[0][0] = keyToSearch;
-            firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key);
+            firstLayerAns = solveFirstLayer(hidden_layer_1, hidden_layer_2, output_layer, key, bias_1, bias_2, bias_3);
             tempDouble = firstLayerAns * linearModels.size() / N;
             modelIndex = (int) tempDouble;
 
