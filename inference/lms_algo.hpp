@@ -22,15 +22,17 @@ inline uint32_t binarySearchBranchless(const std::vector<T> &arr, const T key, u
     intptr_t logstep = bsr(n - 1);
     intptr_t step = intptr_t(1) << logstep;
     int start = mid - threshold;
-
-    pos = (arr[start + pos + n - step] < key ? pos + n - step : pos);
+    uint64_t v = pos + n - step;
+    pos = (arr[start + v] < key ? v : pos);
     step >>= 1;
+    uint32_t t;
     while (step > 0) {
-        pos = (arr[start + pos + step] < key ? pos + step : pos);
+        t = step + pos;
+        pos = (arr[t + start] < key) ? t : pos;
         step >>= 1;
     }
-    pos += 1;
-    int ans = (uint32_t) (arr[start + pos] >= key ? pos : n) + start;
+//    pos += 1;
+    int ans = (uint32_t) (arr[start + pos + 1] >= key ? pos + 1 : n) + start;
     return ans;
 }
 
@@ -40,14 +42,17 @@ inline uint32_t binarySearchBranchless2(const std::vector<T> &arr, const T key, 
     intptr_t pos = -1;
     intptr_t logstep = bsr(n - 1);
     intptr_t step = intptr_t(1) << logstep;
-    pos = (arr[start + pos + n - step] < key ? pos + n - step : pos);
+    uint64_t v = pos + n - step;
+    pos = (arr[start + v] < key) ? v : pos;
     step >>= 1;
+    uint32_t t;
     while (step > 0) {
-        pos = (arr[start + pos + step] < key ? pos + step : pos);
+        t = step + pos;
+        pos = (arr[t + start] < key ? t : pos);
         step >>= 1;
     }
-    pos += 1;
-    int ans = (uint32_t) (arr[start + pos] >= key ? pos : n) + start;
+//    pos += 1;
+    int ans = (uint32_t) (arr[start + pos + 1] >= key ? pos + 1 : n) + start;
     return ans;
 }
 

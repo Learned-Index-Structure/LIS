@@ -32,8 +32,8 @@ inline
 void checkAccuracy(tree_type &btree, vector<uint64_t> keys, vector<uint32_t> values, vector<uint32_t> keyList) {
     for (int i = 0; i < keyList.size(); i++) {
         uint32_t pos = btree_find(btree, keys[keyList[i]]);
-        if (!((values[keyList[i]] == pos) || (keys[pos] == keys[keyList[i]]))) {
-            cout << "Actual, Found:: " << values[keyList[i]] << ", " << btree_find(btree, keys[keyList[i]]) << endl;
+        if (!((values[keyList[i]] == pos) || (keys[pos] == keys[values[keyList[i]]]))) {
+            cout << "Actual, Found:: " << values[keyList[i]] << ", " << pos << endl;
             assert(false);
         }
     }
@@ -67,7 +67,7 @@ int main() {
 
     cout << "btree size(): " << btree.size() << ", " << endl;
 
-    vector<uint32_t> keyList = getKeyList(lines);
+    vector<uint32_t> keyList = getKeyList(btree.size());
 
     //Accuracy Test
     checkAccuracy(btree, keys, values, keyList);
