@@ -16,8 +16,8 @@ typedef chrono::high_resolution_clock Clock;
 
 typedef int (*SecondLayerFun)();
 
-#define NUM_ITERS 10000ll
-#define NO_OF_KEYS 10000ll
+#define NUM_ITERS 1ll
+#define NO_OF_KEYS 1000000ll
 
 static Mat1x16 out_1;
 static Mat1x16 out_2;
@@ -29,6 +29,7 @@ static Mat1x16 key;
 static Mat1x16 bias_1;
 static Mat1x16 bias_2;
 static double bias_3;
+static uint64_t multiplier = 0;
 
 inline
 double solveFirstLayer() {
@@ -71,16 +72,17 @@ int solveSecondLayer() {
 tuple<vector<double>, vector<uint64_t>> getKeyList(vector<uint64_t> data, uint32_t dataLines, double maxKey) {
     vector<double> keys;
     vector<uint64_t> intKeys;
-    for (int i = 0; i < NO_OF_KEYS; i++) {
-        // Random seed
-        random_device rd;
-        mt19937 gen(rd());
-        // Generate pseudo-random numbers
-        // uniformly distributed in range (0, dataLines)
-        uniform_int_distribution<> dis(0, dataLines);
-        uint64_t k = dis(gen);
+//    // Random seed
+//    random_device rd;
+//    mt19937 gen(rd());
+//    // Generate pseudo-random numbers
+//    // uniformly distributed in range (0, dataLines)
+//    uniform_int_distribution<> dis(0, dataLines);
 
-        keys.push_back(data[k] / maxKey / 100.0);
+    for (int i = 0; i < NO_OF_KEYS; i++) {
+//        uint64_t k = dis(gen);
+        uint64_t k = rand() % dataLines;
+        keys.push_back(data[k] / maxKey / (double) (multiplier));
         intKeys.push_back(data[k]);
     }
 //        keys.push_back(0.0001415501221045024);
@@ -88,10 +90,9 @@ tuple<vector<double>, vector<uint64_t>> getKeyList(vector<uint64_t> data, uint32
     return make_tuple(keys, intKeys);
 }
 
-tuple<vector<uint32_t>, vector<uint64_t>, double, double, uint32_t> readData(char *dataFileName) {
+tuple<vector<uint32_t>, vector<uint64_t>, double> readData(string dataFileName, uint32_t dataLines) {
     ifstream dataFile(dataFileName);
     if (dataFile.is_open()) {
-        int dataLines;
 
         uint32_t tempInt32;
         double tempDouble, offset;
@@ -99,13 +100,12 @@ tuple<vector<uint32_t>, vector<uint64_t>, double, double, uint32_t> readData(cha
         vector<uint64_t> data;
         vector<uint32_t> indices;
 
-        dataFile >> dataLines >> maxIndex >> maxKey;
         for (int i = 0; i < dataLines; ++i) {
             dataFile >> tempInt32;
             dataFile >> tempDouble;
 
             if (indices.size() == 0) {
-                offset = tempDouble;
+                offset = 0; //tempDouble;
             } else {
                 while (i < dataLines && tempInt32 != indices.back() + 1) {
                     indices.push_back(indices.back() + 1);
@@ -113,10 +113,10 @@ tuple<vector<uint32_t>, vector<uint64_t>, double, double, uint32_t> readData(cha
                 }
             }
             indices.push_back(tempInt32);
-            data.push_back((uint64_t) ((tempDouble - offset) * 100));
+            data.push_back((uint64_t) ((tempDouble - offset) * multiplier));
         }
         dataFile.close();
-        return make_tuple(indices, data, offset, maxKey, dataLines);
+        return make_tuple(indices, data, offset);
     } else {
         cout << "Unable to open data file." << endl;
         exit(0);
@@ -124,10 +124,10 @@ tuple<vector<uint32_t>, vector<uint64_t>, double, double, uint32_t> readData(cha
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) {
-        cout << "Usage:\ninference <data file> <first layer weights file> <second layer weights>" << endl;
-        exit(0);
-    }
+//    if (argc != 4) {
+//        cout << "Usage:\ninference <data file> <first layer weights file> <second layer weights>" << endl;
+//        exit(0);
+//    }
 
     double offset;
     int dataLines;
@@ -135,9 +135,30 @@ int main(int argc, char **argv) {
     double temp1, temp2, temp3;
     double tempDouble;
 
-    tie(indices, tData, offset, maxKey, dataLines) = readData(argv[1]);
+    string base = "/Users/deepak/Downloads/weights/";
+//    string dataType = "weblog/";
+//    multiplier = 100;
+//    string dataType = "maps/";
+//    multiplier = 10000000000;
+    string dataType = "lognormal/";
+    multiplier = 1;
+    string layer1 = "model_params_layer_1.txt";
+    string layer2 = "model_params_layer_2.txt";
+    string dataFileName = "sorted_keys_non_repeated.csv";
 
-    ifstream firstLayerWeightsFile(argv[2]);
+
+    string path = base + dataType;
+
+    string argv1 = path + dataFileName;
+    string argv2 = path + layer1;
+    string argv3 = path + layer2;
+
+//    strcpy(argv[1], (path + dataFileName).c_str());
+//    strcpy(argv[2], (path + layer1).c_str());
+//    strcpy(argv[3], (path + layer2).c_str());
+
+//    ifstream firstLayerWeightsFile(argv[2]);
+    ifstream firstLayerWeightsFile(argv2);
     if (firstLayerWeightsFile.is_open()) {
         for (int i = 0; i < 16; ++i) {
             firstLayerWeightsFile >> hidden_layer_1.m[0][i];
@@ -160,12 +181,14 @@ int main(int argc, char **argv) {
     }
     firstLayerWeightsFile.close();
 
-    ifstream secondLayerWeightsFile(argv[3]);
+//    ifstream secondLayerWeightsFile(argv[3]);
+    ifstream secondLayerWeightsFile(argv3);
     double N, modelCount;
-    secondLayerWeightsFile >> modelCount >> N >> temp1 >> temp2;
-    threshold = (int) temp2 + 1;
+    secondLayerWeightsFile >> modelCount >> maxKey >> maxIndex >> dataLines >> threshold;
+    threshold = (int) threshold + 1;
     vector<bool> isModel;
     vector<SecondLayerFun> secondLayerVec;
+    double bucketSize = 0;
 
     for (int i = 0; i < (int) modelCount; ++i) {
         secondLayerWeightsFile >> temp1 >> temp2;
@@ -175,7 +198,7 @@ int main(int argc, char **argv) {
         temp1 = (temp1 > 2) ? temp1 - 2 : temp1;
         temp2 += 2;
         btreeErrors.push_back(make_pair(temp1, temp2));
-        secondLayerWeightsFile >> temp3;
+        secondLayerWeightsFile >> bucketSize >> temp3;
 
         isModel.push_back(temp3 != 0.0f);
         if (!isModel.back()) {
@@ -185,6 +208,9 @@ int main(int argc, char **argv) {
         }
     }
     secondLayerWeightsFile.close();
+
+//    tie(indices, tData, offset) = readData(argv[1]);
+    tie(indices, tData, offset) = readData(argv1, dataLines);
 
     vector<double> keyList;
     vector<uint64_t> keyListInt;
@@ -203,6 +229,8 @@ int main(int argc, char **argv) {
             firstLayerOutput = solveFirstLayer();
             tempDouble = firstLayerOutput * linearModels.size();
             modelIndex = (int) tempDouble;
+
+            modelIndex = (modelIndex < 0) ? 0 : ((modelIndex > (modelCount - 1)) ? (modelCount - 1) : modelIndex);
 
             keyListIntVal = keyListInt[i];
             secondLayerAns = secondLayerVec[modelIndex]();

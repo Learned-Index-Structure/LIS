@@ -24,15 +24,18 @@ inline uint32_t binarySearchBranchless(const std::vector<T> &arr, const T key, u
     int start = mid - threshold;
     uint64_t v = pos + n - step;
     pos = (arr[start + v] < key ? v : pos);
+//    cout << "pivot = " << arr[v + start]  << " pos = " << pos << " step = " << step << endl;
     step >>= 1;
     uint32_t t;
     while (step > 0) {
         t = step + pos;
         pos = (arr[t + start] < key) ? t : pos;
+//        cout << "pivot = " << arr[t + start]  << " pos = " << pos << " step = " << step << endl;
         step >>= 1;
     }
 //    pos += 1;
     int ans = (uint32_t) (arr[start + pos + 1] >= key ? pos + 1 : n) + start;
+//    cout << "Last pivot = " << arr[start + pos + 1]   << " pos = " << pos << " step = " << step << endl;
     return ans;
 }
 
@@ -44,15 +47,17 @@ inline uint32_t binarySearchBranchless2(const std::vector<T> &arr, const T key, 
     intptr_t step = intptr_t(1) << logstep;
     uint64_t v = pos + n - step;
     pos = (arr[start + v] < key) ? v : pos;
+//    cout << "pivot = " << arr[v + start]  << " pos = " << pos << " step = " << step << endl;
     step >>= 1;
     uint32_t t;
     while (step > 0) {
         t = step + pos;
         pos = (arr[t + start] < key ? t : pos);
+//        cout << "pivot = " << arr[t + start]  << " pos = " << pos << " step = " << step << endl;
         step >>= 1;
     }
-//    pos += 1;
     int ans = (uint32_t) (arr[start + pos + 1] >= key ? pos + 1 : n) + start;
+//    cout << "Last pivot = " << arr[start + pos + 1]   << " pos = " << pos << " step = " << step << endl;
     return ans;
 }
 
