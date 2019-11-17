@@ -1,5 +1,5 @@
-#ifndef INFERENCE_BTREE_H
-#define INFERENCE_BTREE_H
+#ifndef INFERENCE_BTREE_HPP
+#define INFERENCE_BTREE_HPP
 
 #include "btree/btree_map.h"
 #include <vector>
@@ -22,4 +22,4 @@ void btree_insert(tree_type &tree, const vector<uint64_t> &keys,
     }
 }
 
-#endif //INFERENCE_BTREE_H
+#endif //INFERENCE_BTREE_HPP
