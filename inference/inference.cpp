@@ -17,55 +17,57 @@ typedef chrono::high_resolution_clock Clock;
 typedef int (*SecondLayerFun)();
 
 #define NUM_ITERS 1ll
-#define NO_OF_KEYS 1000000ll
+#define NO_OF_KEYS 100000ll
 
-Mat1x16 out_1;
-Mat1x16 out_2;
+static Mat1x16 out_1;
+static Mat1x16 out_2;
 
-Mat1x16 hidden_layer_1;
-Mat16x16 hidden_layer_2;
-Mat1x16 output_layer;
-Mat1x16 key;
-Mat1x16 bias_1;
-Mat1x16 bias_2;
-double bias_3;
-uint64_t multiplier = 0;
+static Mat1x16 hidden_layer_1;
+static Mat16x16 hidden_layer_2;
+static Mat1x16 output_layer;
+static Mat1x16 key;
+static Mat1x16 bias_1;
+static Mat1x16 bias_2;
+static double bias_3;
+static uint64_t multiplier = 0;
 
 static uint32_t midPoint;
-double maxKey;
-double maxIndex;
+static double maxKey;
+static double maxIndex;
 
-double firstLayerOutput;
-vector<pair<double, double> > linearModels;
-vector<uint64_t> tData;
-int threshold;
-int modelIndex;
-vector<pair<uint32_t, uint32_t >> btreeErrors;
-uint64_t keyListIntVal;
+static double firstLayerOutput;
+static vector<pair<double, double> > linearModels;
+static vector<uint64_t> tData;
+static int threshold;
+static int modelIndex;
+static vector<pair<uint32_t, uint32_t >> btreeErrors;
+static uint64_t keyListIntVal;
 
 
-string argv1;
-string argv2;
-string argv3;
+static string argv1;
+static string argv2;
+static string argv3;
 
-double offset;
-int dataLines;
-vector<uint32_t> indices;
-int modelCount;
-vector<bool> isModel;
-vector<SecondLayerFun> secondLayerVec;
-vector<double> keyList;
-vector<uint64_t> keyListInt;
+static double offset;
+static int dataLines;
+static vector<uint32_t> indices;
+static int modelCount;
+static vector<bool> isModel;
+static vector<SecondLayerFun> secondLayerVec;
+static vector<double> keyList;
+static vector<uint64_t> keyListInt;
 
-inline void cleanup() {
-    indices.clear();
+inline void cleanup(const bool dataCleanup) {
     isModel.clear();
     secondLayerVec.clear();
     linearModels.clear();
-    tData.clear();
     btreeErrors.clear();
     keyList.clear();
     keyListInt.clear();
+    if(dataCleanup) {
+        tData.clear();
+        indices.clear();
+    }
 }
 
 inline
@@ -143,11 +145,11 @@ tuple<vector<uint32_t>, vector<uint64_t>, double> readData(string dataFileName, 
     }
 }
 
-
-void setup(string basePath, string dataset, string modelCountStr, string thresholdStr) {
+inline
+void setup(const string basePath, string dataset, const string modelCountStr,const string thresholdStr, const bool onlySecondStageLoad) {
 
     // Filename Setup
-    if (dataset.compare("weblog"))
+    if (dataset.compare("weblogs"))
         multiplier = 100;
     else if (dataset.compare("maps"))
         multiplier = 10000000000;
@@ -171,29 +173,6 @@ void setup(string basePath, string dataset, string modelCountStr, string thresho
 
     //Load data
     double temp1, temp2, temp3;
-
-    ifstream firstLayerWeightsFile(argv2);
-    if (firstLayerWeightsFile.is_open()) {
-        for (int i = 0; i < 16; ++i) {
-            firstLayerWeightsFile >> hidden_layer_1.m[0][i];
-        }
-        for (int i = 0; i < 16; ++i) {
-            firstLayerWeightsFile >> bias_1.m[0][i];
-        }
-        for (int i = 0; i < 16; ++i) {
-            for (int j = 0; j < 16; ++j) {
-                firstLayerWeightsFile >> hidden_layer_2.m[j][i];
-            }
-        }
-        for (int i = 0; i < 16; ++i) {
-            firstLayerWeightsFile >> bias_2.m[0][i];
-        }
-        for (int i = 0; i < 16; ++i) {
-            firstLayerWeightsFile >> output_layer.m[0][i];
-        }
-        firstLayerWeightsFile >> bias_3;
-    }
-    firstLayerWeightsFile.close();
 
     ifstream secondLayerWeightsFile(argv3);
     secondLayerWeightsFile >> modelCount >> maxKey >> maxIndex >> dataLines >> threshold;
@@ -220,9 +199,35 @@ void setup(string basePath, string dataset, string modelCountStr, string thresho
         }
     }
     secondLayerWeightsFile.close();
-    cout << "File Read starts." << endl;
+
+    if(onlySecondStageLoad) {
+        return;
+    }
+
+    ifstream firstLayerWeightsFile(argv2);
+    if (firstLayerWeightsFile.is_open()) {
+        for (int i = 0; i < 16; ++i) {
+            firstLayerWeightsFile >> hidden_layer_1.m[0][i];
+        }
+        for (int i = 0; i < 16; ++i) {
+            firstLayerWeightsFile >> bias_1.m[0][i];
+        }
+        for (int i = 0; i < 16; ++i) {
+            for (int j = 0; j < 16; ++j) {
+                firstLayerWeightsFile >> hidden_layer_2.m[j][i];
+            }
+        }
+        for (int i = 0; i < 16; ++i) {
+            firstLayerWeightsFile >> bias_2.m[0][i];
+        }
+        for (int i = 0; i < 16; ++i) {
+            firstLayerWeightsFile >> output_layer.m[0][i];
+        }
+        firstLayerWeightsFile >> bias_3;
+    }
+    firstLayerWeightsFile.close();
+
     tie(indices, tData, offset) = readData(argv1, dataLines);
-    cout << "File Read ends. File Size: " << tData.size() << endl;
 }
 
 inline uint32_t infer(uint64_t keyInt) {
@@ -235,7 +240,7 @@ inline uint32_t infer(uint64_t keyInt) {
 //
 //int main(int argc, char **argv) {
 //    string path = "/Users/deepak/Downloads/weights/";
-//    setup(path, "weblog", "100000", "128");
+//    setup(path, "weblog", "100000", "128", false);
 //
 //    vector<double> keyList;
 //    vector<uint64_t> keyListInt;
