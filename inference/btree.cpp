@@ -43,7 +43,7 @@ int main() {
     btree::btree_map<uint64_t, uint32_t> btree;
     vector<uint64_t> keys;
     vector<uint32_t> values;
-    string file = "/Users/deepak/Downloads/WebLogs/sorted_keys_non_repeated.csv";
+    string file = "/Users/deepak/Downloads/weights/lognormal/sorted_keys_non_repeated.csv";
 
     ifstream dataFile(file);
     uint32_t lines = 0;

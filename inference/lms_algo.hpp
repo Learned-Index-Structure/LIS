@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <cassert>
 
+#pragma once
+
 using namespace std;
 
 // power of 2 at most x, undefined for x == 0

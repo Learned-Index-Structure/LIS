@@ -1,4 +1,4 @@
-#include "lms_algo.h"
+#include "lms_algo.hpp"
 #include "iaca_mac/iacaMarks.h"
 
 // https://gist.github.com/slode/5ce2a6eb9be1b185b584d2b7f3b94422

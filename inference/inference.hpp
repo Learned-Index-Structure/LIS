@@ -4,7 +4,9 @@
 #include <string.h>
 #include <chrono>
 #include <iostream>
-#include "iaca_mac/iacaMarks.h"
+
+#pragma once
+
 
 union Mat1x1 { //Just for benchmarking
     float m[1][1];
@@ -233,33 +235,6 @@ inline void relu(T &out) {
         }
     }
 }
-
-// inline float NaiveInference() {
-//     MatMulNaive<1, 1, 32>(out_1, key, hidden_layer_1);
-//     relu<1, 32>(out_1);
-//     MatMulNaive<1, 32, 32>(out_2, out_1, hidden_layer_2);
-//     relu<1, 32>(out_2);
-//     MatMulNaive<1, 32, 1>(naive_output, out_2, output_layer);
-
-
-//     float pred = naive_output.m[0][0] * models / N;
-//     return (pred * lr_wt[0] + lr_wt[1]);
-// }
-
-// inline float SIMDInference() {
-//     float position = 0.0;
-
-//     matmult_AVX_1x1x32(out_1, key, hidden_layer_1);
-//     relu<1, 32>(out_1);
-//     matmult_AVX_1x32x32(out_2, out_1, hidden_layer_2);
-//     relu<1, 32>(out_2);
-//     position = matmult_AVX_1x32x1(out_2, output_layer);
-
-//     float pred = position * models / N;
-//     return (pred * lr_wt[0] + lr_wt[1]);
-// }
-
-
 
 double doubleVal = 1.0232;
 
