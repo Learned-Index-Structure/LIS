@@ -20,8 +20,14 @@ static void clobber() {
     asm volatile("" : : : "memory");
 }
 
+uint32_t randInd = 12;
+
 inline uint32_t GetRandKey(uint32_t sz) {
-    return (uint32_t) (rand() % sz);
+//    random_device rd;
+//    mt19937 gen(rd());
+//    uniform_int_distribution<> dis(0, sz);
+//    return dis(gen);
+    return (uint32_t) ((rand()) % sz);
 }
 
 static void RandKeyGen(benchmark::State &state) {
@@ -40,12 +46,14 @@ static void RandKeyGen(benchmark::State &state) {
 bool WebLog_Inference_10000_32_Load = true;
 
 static void WebLog_Inference_10000_32(benchmark::State &state) {
+    const int size = static_cast<int>(state.range(0));
     if (WebLog_Inference_10000_32_Load) {
         WebLog_Inference_10000_32_Load = false;
         cleanup(true);
         setup(path, "weblogs", "10000", "32", false);
         getKeyList(tData, dataLines, maxKey);
     }
+
     double keyToSearch;
     uint32_t sz = keyList.size() - 1;
     uint32_t i = 0;
@@ -57,6 +65,9 @@ static void WebLog_Inference_10000_32(benchmark::State &state) {
         sum += infer(keyListInt[i]);
         clobber();
     }
+
+//    state.SetItemsProcessed(state.iterations() * size);
+//    state.SetBytesProcessed(state.iterations() * size);
 }
 
 bool WebLog_Inference_10000_64_Load = true;
@@ -327,6 +338,8 @@ static void WebLog_Inference_50000_256(benchmark::State &state) {
 bool WebLog_Inference_100000_32_Load = true;
 
 static void WebLog_Inference_100000_32(benchmark::State &state) {
+    const int size = static_cast<int>(state.range(0));
+
     if (WebLog_Inference_100000_32_Load) {
         WebLog_Inference_100000_32_Load = false;
         cleanup(false);
@@ -344,6 +357,8 @@ static void WebLog_Inference_100000_32(benchmark::State &state) {
         sum += infer(keyListInt[i]);
         clobber();
     }
+//    state.SetItemsProcessed(state.iterations() * size);
+//    state.SetBytesProcessed(state.iterations() * size);
 }
 
 bool WebLog_Inference_100000_64_Load = true;
@@ -907,7 +922,98 @@ static void Maps_Inference_100000_256(benchmark::State &state) {
     }
 }
 
-// 100k Models start
+// 100k Models ends
+
+
+bool Maps_Inference_200000_32_Load = true;
+
+static void Maps_Inference_200000_32(benchmark::State &state) {
+    if (Maps_Inference_200000_32_Load) {
+        Maps_Inference_200000_32_Load = false;
+        cleanup(false);
+        setup(path, "maps", "200000", "32", true);
+        getKeyList(tData, dataLines, maxKey);
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
+
+bool Maps_Inference_200000_64_Load = true;
+
+static void Maps_Inference_200000_64(benchmark::State &state) {
+    if (Maps_Inference_200000_64_Load) {
+        Maps_Inference_200000_64_Load = false;
+        cleanup(false);
+//        cout << "tData.size()  << dataLines << maxKey: " << tData.size() << ", " << dataLines << ", " << maxKey << endl;
+        setup(path, "maps", "200000", "64", true);
+        getKeyList(tData, dataLines, maxKey);
+
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
+
+bool Inference_200000_128_Maps_Load = true;
+
+static void Maps_Inference_200000_128(benchmark::State &state) {
+    if (Inference_200000_128_Maps_Load) {
+        Inference_200000_128_Maps_Load = false;
+        cleanup(false);
+        setup(path, "maps", "200000", "128", true);
+        getKeyList(tData, dataLines, maxKey);
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
+
+bool Maps_Inference_200000_256_Load = true;
+
+static void Maps_Inference_200000_256(benchmark::State &state) {
+    if (Maps_Inference_200000_256_Load) {
+        Maps_Inference_200000_256_Load = false;
+        cleanup(false);
+        setup(path, "maps", "200000", "256", true);
+        getKeyList(tData, dataLines, maxKey);
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
 
 static bool Maps_Btree_128_LOAD = true;
 tree_type btree_maps;
@@ -917,7 +1023,7 @@ static void Maps_Btree_128(benchmark::State &state) {
         Maps_Btree_128_LOAD = false;
         cleanup(false);
         btree_insert(btree_maps, tData, indices, 0, tData.size() - 1);
-//        cout << "btree lognormal size: " << btree_maps.size() << endl;
+//        cout << "Maps btree size: " << btree_maps.size() << endl;
     }
 
     uint32_t sz = tData.size() - 1;
@@ -1309,7 +1415,99 @@ static void Lognormal_Inference_100000_256(benchmark::State &state) {
     }
 }
 
-// 100k Models start
+// 100k Models ends
+
+
+
+bool Lognormal_Inference_200000_32_Load = true;
+
+static void Lognormal_Inference_200000_32(benchmark::State &state) {
+    if (Lognormal_Inference_200000_32_Load) {
+        Lognormal_Inference_200000_32_Load = false;
+        cleanup(false);
+        setup(path, "lognormal", "200000", "32", true);
+        getKeyList(tData, dataLines, maxKey);
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
+
+bool Lognormal_Inference_200000_64_Load = true;
+
+static void Lognormal_Inference_200000_64(benchmark::State &state) {
+    if (Lognormal_Inference_200000_64_Load) {
+        Lognormal_Inference_200000_64_Load = false;
+        cleanup(false);
+//        cout << "tData.size()  << dataLines << maxKey: " << tData.size() << ", " << dataLines << ", " << maxKey << endl;
+        setup(path, "lognormal", "200000", "64", true);
+        getKeyList(tData, dataLines, maxKey);
+
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
+
+bool Inference_200000_128_Lognormal_Load = true;
+
+static void Lognormal_Inference_200000_128(benchmark::State &state) {
+    if (Inference_200000_128_Lognormal_Load) {
+        Inference_200000_128_Lognormal_Load = false;
+        cleanup(false);
+        setup(path, "lognormal", "200000", "128", true);
+        getKeyList(tData, dataLines, maxKey);
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
+
+bool Lognormal_Inference_200000_256_Load = true;
+
+static void Lognormal_Inference_200000_256(benchmark::State &state) {
+    if (Lognormal_Inference_200000_256_Load) {
+        Lognormal_Inference_200000_256_Load = false;
+        cleanup(false);
+        setup(path, "lognormal", "200000", "256", true);
+        getKeyList(tData, dataLines, maxKey);
+    }
+    double keyToSearch;
+    uint32_t sz = keyList.size() - 1;
+    uint32_t i = 0;
+    for (auto _ : state) {
+        escape(&sum);
+        i = GetRandKey(sz);
+        keyToSearch = keyList[i];
+        key.m[0][0] = keyToSearch;
+        sum += infer(keyListInt[i]);
+        clobber();
+    }
+}
 
 static bool Lognormal_Btree_128_LOAD = true;
 tree_type btree_lognormal;
@@ -1335,7 +1533,7 @@ static void Lognormal_Btree_128(benchmark::State &state) {
 
 BENCHMARK(RandKeyGen);
 
-BENCHMARK(WebLog_Inference_10000_32);
+BENCHMARK(WebLog_Inference_10000_32); //->Range(8, 8<<10);
 BENCHMARK(WebLog_Inference_10000_64);
 BENCHMARK(WebLog_Inference_10000_128);
 BENCHMARK(WebLog_Inference_10000_256);
@@ -1350,14 +1548,14 @@ BENCHMARK(WebLog_Inference_50000_64);
 BENCHMARK(WebLog_Inference_50000_128);
 BENCHMARK(WebLog_Inference_50000_256);
 
-BENCHMARK(WebLog_Inference_100000_32);
+BENCHMARK(WebLog_Inference_100000_32);//->Range(8, 8<<10);
 BENCHMARK(WebLog_Inference_100000_64);
 BENCHMARK(WebLog_Inference_100000_128);
 BENCHMARK(WebLog_Inference_100000_256);
 
 BENCHMARK(Weblog_Btree_128);
 
-
+//
 BENCHMARK(Maps_Inference_10000_32);
 BENCHMARK(Maps_Inference_10000_64);
 BENCHMARK(Maps_Inference_10000_128);
@@ -1378,29 +1576,39 @@ BENCHMARK(Maps_Inference_100000_64);
 BENCHMARK(Maps_Inference_100000_128);
 BENCHMARK(Maps_Inference_100000_256);
 
+BENCHMARK(Maps_Inference_200000_32);
+BENCHMARK(Maps_Inference_200000_64);
+BENCHMARK(Maps_Inference_200000_128);
+BENCHMARK(Maps_Inference_200000_256);
+
 BENCHMARK(Maps_Btree_128);
+//
+//
+//BENCHMARK(Lognormal_Inference_10000_32);
+//BENCHMARK(Lognormal_Inference_10000_64);
+//BENCHMARK(Lognormal_Inference_10000_128);
+//BENCHMARK(Lognormal_Inference_10000_256);
+//
+//BENCHMARK(Lognormal_Inference_20000_32);
+//BENCHMARK(Lognormal_Inference_20000_64);
+//BENCHMARK(Lognormal_Inference_20000_128);
+//BENCHMARK(Lognormal_Inference_20000_256);
+//
+//BENCHMARK(Lognormal_Inference_50000_32);
+//BENCHMARK(Lognormal_Inference_50000_64);
+//BENCHMARK(Lognormal_Inference_50000_128);
+//BENCHMARK(Lognormal_Inference_50000_256);
+//
+//BENCHMARK(Lognormal_Inference_100000_32);
+//BENCHMARK(Lognormal_Inference_100000_64);
+//BENCHMARK(Lognormal_Inference_100000_128);
+//BENCHMARK(Lognormal_Inference_100000_256);
+//
+//BENCHMARK(Lognormal_Inference_200000_32);
+//BENCHMARK(Lognormal_Inference_200000_64);
+//BENCHMARK(Lognormal_Inference_200000_128);
+//BENCHMARK(Lognormal_Inference_200000_256);
 
-
-BENCHMARK(Lognormal_Inference_10000_32);
-BENCHMARK(Lognormal_Inference_10000_64);
-BENCHMARK(Lognormal_Inference_10000_128);
-BENCHMARK(Lognormal_Inference_10000_256);
-
-BENCHMARK(Lognormal_Inference_20000_32);
-BENCHMARK(Lognormal_Inference_20000_64);
-BENCHMARK(Lognormal_Inference_20000_128);
-BENCHMARK(Lognormal_Inference_20000_256);
-
-BENCHMARK(Lognormal_Inference_50000_32);
-BENCHMARK(Lognormal_Inference_50000_64);
-BENCHMARK(Lognormal_Inference_50000_128);
-BENCHMARK(Lognormal_Inference_50000_256);
-
-BENCHMARK(Lognormal_Inference_100000_32);
-BENCHMARK(Lognormal_Inference_100000_64);
-BENCHMARK(Lognormal_Inference_100000_128);
-BENCHMARK(Lognormal_Inference_100000_256);
-
-BENCHMARK(Lognormal_Btree_128);
+//BENCHMARK(Lognormal_Btree_128);
 
 BENCHMARK_MAIN();

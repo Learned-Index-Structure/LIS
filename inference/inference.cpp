@@ -17,7 +17,7 @@ typedef chrono::high_resolution_clock Clock;
 typedef int (*SecondLayerFun)();
 
 #define NUM_ITERS 1ll
-#define NO_OF_KEYS 100000ll
+#define NO_OF_KEYS 100000
 
 static Mat1x16 out_1;
 static Mat1x16 out_2;
@@ -64,7 +64,7 @@ inline void cleanup(const bool dataCleanup) {
     btreeErrors.clear();
     keyList.clear();
     keyListInt.clear();
-    if(dataCleanup) {
+    if (dataCleanup) {
         tData.clear();
         indices.clear();
     }
@@ -146,12 +146,13 @@ tuple<vector<uint32_t>, vector<uint64_t>, double> readData(string dataFileName, 
 }
 
 inline
-void setup(const string basePath, string dataset, const string modelCountStr,const string thresholdStr, const bool onlySecondStageLoad) {
+void setup(const string basePath, string dataset, const string modelCountStr, const string thresholdStr,
+           const bool onlySecondStageLoad) {
 
     // Filename Setup
-    if (dataset.compare("weblogs"))
+    if (!dataset.compare("weblogs"))
         multiplier = 100;
-    else if (dataset.compare("maps"))
+    else if (!dataset.compare("maps"))
         multiplier = 10000000000;
     else
         multiplier = 1;
@@ -200,7 +201,7 @@ void setup(const string basePath, string dataset, const string modelCountStr,con
     }
     secondLayerWeightsFile.close();
 
-    if(onlySecondStageLoad) {
+    if (onlySecondStageLoad) {
         return;
     }
 
@@ -237,14 +238,12 @@ inline uint32_t infer(uint64_t keyInt) {
     keyListIntVal = keyInt;
     return secondLayerVec[modelIndex]();
 }
-//
+
 //int main(int argc, char **argv) {
 //    string path = "/Users/deepak/Downloads/weights/";
-//    setup(path, "weblog", "100000", "128", false);
+//    setup(path, "maps", "100000", "128", false);
 //
-//    vector<double> keyList;
-//    vector<uint64_t> keyListInt;
-//    tie(keyList, keyListInt) = getKeyList(tData, dataLines, maxKey);
+//    getKeyList(tData, dataLines, maxKey);
 //    uint64_t sum = 0;
 //    double keyToSearch;
 //    int i, j;
@@ -254,7 +253,14 @@ inline uint32_t infer(uint64_t keyInt) {
 //        for (i = 0; i < keyList.size(); ++i) {
 //            keyToSearch = keyList[i];
 //            key.m[0][0] = keyToSearch;
-//            sum += infer(keyListInt[i]);
+//            uint32_t pos = infer(keyListInt[i]);
+//            sum+=pos;
+//            //    Accuracy Test
+//            if (keyListIntVal != tData[pos]) {
+//                cout << "Wrong prediction!!!!!!!!!!!" << endl;
+//                cout << "Actual Key: " << keyListIntVal << ", Predicted Key: " << tData[pos] << endl;
+//                assert(false);
+//            }
 //        }
 //    }
 //

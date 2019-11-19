@@ -22,7 +22,6 @@ void btree_insert(tree_type &tree, const vector<uint64_t> &keys,
     for (uint32_t i = start_index; i <= end_index; i++) {
         tree.insert(std::pair<uint64_t, uint32_t>(keys[i], values[i]));
     }
-//    cout << "Btree size: " << tree.size() << endl;
 }
 
 #endif //INFERENCE_BTREE_HPP
