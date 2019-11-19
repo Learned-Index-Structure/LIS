@@ -24,6 +24,7 @@ inline uint32_t binarySearchBranchless(const std::vector<T> &arr, const T key, u
     intptr_t logstep = bsr(n - 1);
     intptr_t step = intptr_t(1) << logstep;
     int start = mid - threshold;
+    start = (start < 0) ? 0 : start;
     uint64_t v = pos + n - step;
     pos = (arr[start + v] < key ? v : pos);
 //    cout << "pivot = " << arr[v + start]  << " pos = " << pos << " step = " << step << endl;

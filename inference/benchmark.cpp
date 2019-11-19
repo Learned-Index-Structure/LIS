@@ -23,10 +23,6 @@ static void clobber() {
 uint32_t randInd = 12;
 
 inline uint32_t GetRandKey(uint32_t sz) {
-//    random_device rd;
-//    mt19937 gen(rd());
-//    uniform_int_distribution<> dis(0, sz);
-//    return dis(gen);
     return (uint32_t) ((rand()) % sz);
 }
 
@@ -39,9 +35,7 @@ static void RandKeyGen(benchmark::State &state) {
     }
 }
 
-
 // 10k Models
-
 
 bool WebLog_Inference_10000_32_Load = true;
 
@@ -1066,9 +1060,9 @@ static void Lognormal_Inference_10000_64(benchmark::State &state) {
     if (Lognormal_Inference_10000_64_Load) {
         Lognormal_Inference_10000_64_Load = false;
         cleanup(false);
-//        cout << "tData.size()  << dataLines << maxKey: " << tData.size() << ", " << dataLines << ", " << maxKey << endl;
         setup(path, "lognormal", "10000", "64", true);
         getKeyList(tData, dataLines, maxKey);
+//        cout << "tData.size()  << dataLines << keyset: " << tData.size() << ", " << dataLines << ", " << keyList.size() << endl;
     }
 
     double keyToSearch;
@@ -1142,6 +1136,7 @@ static void Lognormal_Inference_20000_32(benchmark::State &state) {
         cleanup(false);
         setup(path, "lognormal", "20000", "32", true);
         getKeyList(tData, dataLines, maxKey);
+//        cout << "tData.size()  << dataLines << keyset: " << tData.size() << ", " << dataLines << ", " << keyList.size() << endl;
     }
     double keyToSearch;
     uint32_t sz = keyList.size() - 1;
@@ -1165,6 +1160,7 @@ static void Lognormal_Inference_20000_64(benchmark::State &state) {
 //        cout << "tData.size()  << dataLines << maxKey: " << tData.size() << ", " << dataLines << ", " << maxKey << endl;
         setup(path, "lognormal", "20000", "64", true);
         getKeyList(tData, dataLines, maxKey);
+//        cout << "tData.size()  << dataLines << keyset: " << tData.size() << ", " << dataLines << ", " << keyList.size() << endl;
     }
 
     double keyToSearch;
@@ -1417,8 +1413,6 @@ static void Lognormal_Inference_100000_256(benchmark::State &state) {
 
 // 100k Models ends
 
-
-
 bool Lognormal_Inference_200000_32_Load = true;
 
 static void Lognormal_Inference_200000_32(benchmark::State &state) {
@@ -1555,7 +1549,6 @@ BENCHMARK(WebLog_Inference_100000_256);
 
 BENCHMARK(Weblog_Btree_128);
 
-//
 BENCHMARK(Maps_Inference_10000_32);
 BENCHMARK(Maps_Inference_10000_64);
 BENCHMARK(Maps_Inference_10000_128);
@@ -1582,33 +1575,32 @@ BENCHMARK(Maps_Inference_200000_128);
 BENCHMARK(Maps_Inference_200000_256);
 
 BENCHMARK(Maps_Btree_128);
-//
-//
-//BENCHMARK(Lognormal_Inference_10000_32);
-//BENCHMARK(Lognormal_Inference_10000_64);
-//BENCHMARK(Lognormal_Inference_10000_128);
-//BENCHMARK(Lognormal_Inference_10000_256);
-//
-//BENCHMARK(Lognormal_Inference_20000_32);
-//BENCHMARK(Lognormal_Inference_20000_64);
-//BENCHMARK(Lognormal_Inference_20000_128);
-//BENCHMARK(Lognormal_Inference_20000_256);
-//
-//BENCHMARK(Lognormal_Inference_50000_32);
-//BENCHMARK(Lognormal_Inference_50000_64);
-//BENCHMARK(Lognormal_Inference_50000_128);
-//BENCHMARK(Lognormal_Inference_50000_256);
-//
-//BENCHMARK(Lognormal_Inference_100000_32);
-//BENCHMARK(Lognormal_Inference_100000_64);
-//BENCHMARK(Lognormal_Inference_100000_128);
-//BENCHMARK(Lognormal_Inference_100000_256);
-//
-//BENCHMARK(Lognormal_Inference_200000_32);
-//BENCHMARK(Lognormal_Inference_200000_64);
-//BENCHMARK(Lognormal_Inference_200000_128);
-//BENCHMARK(Lognormal_Inference_200000_256);
 
-//BENCHMARK(Lognormal_Btree_128);
+BENCHMARK(Lognormal_Inference_10000_32);
+BENCHMARK(Lognormal_Inference_10000_64);
+BENCHMARK(Lognormal_Inference_10000_128);
+BENCHMARK(Lognormal_Inference_10000_256);
+
+BENCHMARK(Lognormal_Inference_20000_32);
+BENCHMARK(Lognormal_Inference_20000_64);
+BENCHMARK(Lognormal_Inference_20000_128);
+BENCHMARK(Lognormal_Inference_20000_256);
+
+BENCHMARK(Lognormal_Inference_50000_32);
+BENCHMARK(Lognormal_Inference_50000_64);
+BENCHMARK(Lognormal_Inference_50000_128);
+BENCHMARK(Lognormal_Inference_50000_256);
+
+BENCHMARK(Lognormal_Inference_100000_32);
+BENCHMARK(Lognormal_Inference_100000_64);
+BENCHMARK(Lognormal_Inference_100000_128);
+BENCHMARK(Lognormal_Inference_100000_256);
+
+BENCHMARK(Lognormal_Inference_200000_32);
+BENCHMARK(Lognormal_Inference_200000_64);
+BENCHMARK(Lognormal_Inference_200000_128);
+BENCHMARK(Lognormal_Inference_200000_256);
+
+BENCHMARK(Lognormal_Btree_128);
 
 BENCHMARK_MAIN();

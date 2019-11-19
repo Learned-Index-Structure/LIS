@@ -17,7 +17,7 @@ typedef chrono::high_resolution_clock Clock;
 typedef int (*SecondLayerFun)();
 
 #define NUM_ITERS 1ll
-#define NO_OF_KEYS 100000
+#define NO_OF_KEYS 10000000
 
 static Mat1x16 out_1;
 static Mat1x16 out_2;
@@ -89,8 +89,10 @@ int solveSecondLayer() {
     if (isModel) {
         midPoint = (uint32_t) (((key.m[0][0] * linearModels[modelIndex].first) + linearModels[modelIndex].second) *
                                maxIndex);
+//        cout << " Binary Search " << midPoint << ", Key: " <<keyListIntVal<< endl;
         return binarySearchBranchless<uint64_t>(tData, keyListIntVal, midPoint, threshold);
     } else {
+//        cout << " Btree Search " << ", Key: " <<keyListIntVal<< endl;
         return binarySearchBranchless2<uint64_t>(tData, keyListIntVal, btreeErrors[modelIndex].first,
                                                  btreeErrors[modelIndex].second);
     }
@@ -187,10 +189,9 @@ void setup(const string basePath, string dataset, const string modelCountStr, co
         secondLayerWeightsFile >> temp1 >> temp2;
         secondLayerWeightsFile >> temp1 >> temp2;
         temp1 = (temp1 > 2) ? temp1 - 2 : temp1;
-        temp2 += 2;
+        temp2 += 1;
         btreeErrors.push_back(make_pair(temp1, temp2));
         secondLayerWeightsFile >> bucketSize >> temp3;
-//        secondLayerWeightsFile >> temp3;
 
         isModel.push_back(temp3 != 0.0f);
         if (!isModel.back()) {
@@ -239,10 +240,46 @@ inline uint32_t infer(uint64_t keyInt) {
     return secondLayerVec[modelIndex]();
 }
 
-//int main(int argc, char **argv) {
-//    string path = "/Users/deepak/Downloads/weights/";
-//    setup(path, "maps", "100000", "128", false);
-//
+void validate() {
+    getKeyList(tData, dataLines, maxKey);
+    uint64_t sum = 0;
+    double keyToSearch;
+    int i, j;
+
+    for (j = 0; j < NUM_ITERS; ++j) {
+        for (i = 0; i < keyList.size(); ++i) {
+            keyToSearch = keyList[i];
+            key.m[0][0] = keyToSearch;
+            uint32_t pos = infer(keyListInt[i]);
+            sum += pos;
+            //    Accuracy Test
+            if (keyListIntVal != tData[pos]) {
+                cout << "Wrong prediction!!!!!!!!!!!" << endl;
+                cout << "Actual Key: " << keyListIntVal << ", Predicted Key: " << tData[pos] << endl;
+                assert(false);
+            }
+        }
+    }
+}
+
+int main(int argc, char **argv) {
+    string path = "/Users/deepak/Downloads/weights/";
+
+    cleanup(true);
+    setup(path, "maps", "100000", "128", false);
+    validate();
+    cout << "Maps Validated" << endl;
+
+    cleanup(true);
+    setup(path, "weblogs", "100000", "128", false);
+    validate();
+    cout << "Weblogs Validated" << endl;
+
+    cleanup(true);
+    setup(path, "lognormal", "100000", "128", false);
+    validate();
+    cout << "Lognormal Validated" << endl;
+
 //    getKeyList(tData, dataLines, maxKey);
 //    uint64_t sum = 0;
 //    double keyToSearch;
@@ -269,5 +306,5 @@ inline uint32_t infer(uint64_t keyInt) {
 //    std::cout << "Time: "
 //              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
 //              << " nanoseconds" << std::endl;
-//    return 0;
-//}
+    return 0;
+}
