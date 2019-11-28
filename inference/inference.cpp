@@ -31,7 +31,7 @@ static Mat1x16 bias_2;
 static double bias_3;
 static uint64_t multiplier = 0;
 
-static uint32_t midPoint;
+static int32_t midPoint;
 static double maxKey;
 static double maxIndex;
 
@@ -40,7 +40,7 @@ static vector<pair<double, double> > linearModels;
 static vector<uint64_t> tData;
 static int threshold;
 static int modelIndex;
-static vector<pair<uint32_t, uint32_t >> btreeErrors;
+static vector<pair<int32_t, int32_t >> btreeErrors;
 static uint64_t keyListIntVal;
 
 
@@ -82,20 +82,22 @@ double solveFirstLayer() {
     return matmult_AVX_1x16x1_REF(out_2, output_layer) + bias_3;
 }
 
+int bsearchCnt = 0;
+int btreeCnt = 0;
 
 template<bool isModel>
 inline
 int solveSecondLayer() {
-    if (isModel) {
-        midPoint = (uint32_t) (((key.m[0][0] * linearModels[modelIndex].first) + linearModels[modelIndex].second) *
-                               maxIndex);
+//    if (isModel) {
+    midPoint = (uint32_t) (((key.m[0][0] * linearModels[modelIndex].first) + linearModels[modelIndex].second) *
+                           maxIndex);
 //        cout << " Binary Search " << midPoint << ", Key: " <<keyListIntVal<< endl;
-        return binarySearchBranchless<uint64_t>(tData, keyListIntVal, midPoint, threshold);
-    } else {
-//        cout << " Btree Search " << ", Key: " <<keyListIntVal<< endl;
-        return binarySearchBranchless2<uint64_t>(tData, keyListIntVal, btreeErrors[modelIndex].first,
-                                                 btreeErrors[modelIndex].second);
-    }
+//        return binarySearchBranchless<uint64_t>(tData, keyListIntVal, midPoint, threshold);
+    return binarySearchBranchless2<uint64_t>(tData, keyListIntVal, (midPoint + btreeErrors[modelIndex].first) < 0 ? 0: midPoint + btreeErrors[modelIndex].first,
+                                             (midPoint + btreeErrors[modelIndex].second) >= tData.size() ? tData.size()-1: midPoint + btreeErrors[modelIndex].second);
+//    } else {
+////        cout << " Btree Search " << ", Key: " <<keyListIntVal<< endl;
+//        return binarySearchBranchless2<uint64_t>(tData, keyListIntVal, btreeErrors[modelIndex].first,btreeErrors[modelIndex].second);
 }
 
 
@@ -187,10 +189,10 @@ void setup(const string basePath, string dataset, const string modelCountStr, co
         secondLayerWeightsFile >> temp1 >> temp2;
         linearModels.push_back(make_pair(temp1, temp2));
         secondLayerWeightsFile >> temp1 >> temp2;
-        secondLayerWeightsFile >> temp1 >> temp2;
         temp1 = (temp1 > 2) ? temp1 - 2 : temp1;
         temp2 += 1;
         btreeErrors.push_back(make_pair(temp1, temp2));
+        secondLayerWeightsFile >> temp1 >> temp2;
         secondLayerWeightsFile >> bucketSize >> temp3;
 
         isModel.push_back(temp3 != 0.0f);
@@ -232,7 +234,7 @@ void setup(const string basePath, string dataset, const string modelCountStr, co
     tie(indices, tData, offset) = readData(argv1, dataLines);
 }
 
-inline uint32_t infer(uint64_t keyInt) {
+uint32_t infer(uint64_t keyInt) {
     firstLayerOutput = solveFirstLayer();
     modelIndex = (int) (firstLayerOutput * linearModels.size());
     modelIndex = (modelIndex < 0) ? 0 : ((modelIndex > (modelCount - 1)) ? (modelCount - 1) : modelIndex);
@@ -264,47 +266,53 @@ void validate() {
 
 int main(int argc, char **argv) {
     string path = "/Users/deepak/Downloads/weights/";
+    bool validateData = false;
+
+    if (validateData) {
+        cleanup(true);
+        setup(path, "maps", "100000", "128", false);
+        validate();
+        cout << "Maps Validated" << endl;
+
+        cleanup(true);
+        setup(path, "weblogs", "100000", "128", false);
+        validate();
+        cout << "Weblogs Validated" << endl;
+
+        cleanup(true);
+        setup(path, "lognormal", "100000", "128", false);
+        validate();
+        cout << "Lognormal Validated" << endl;
+    }
 
     cleanup(true);
     setup(path, "maps", "100000", "128", false);
-    validate();
-    cout << "Maps Validated" << endl;
+    getKeyList(tData, dataLines, maxKey);
+    uint64_t sum = 0;
+    double keyToSearch;
+    int i, j;
 
-    cleanup(true);
-    setup(path, "weblogs", "100000", "128", false);
-    validate();
-    cout << "Weblogs Validated" << endl;
-
-    cleanup(true);
-    setup(path, "lognormal", "100000", "128", false);
-    validate();
-    cout << "Lognormal Validated" << endl;
-
-//    getKeyList(tData, dataLines, maxKey);
-//    uint64_t sum = 0;
-//    double keyToSearch;
-//    int i, j;
-//
-//    auto t1 = Clock::now();
-//    for (j = 0; j < NUM_ITERS; ++j) {
-//        for (i = 0; i < keyList.size(); ++i) {
-//            keyToSearch = keyList[i];
-//            key.m[0][0] = keyToSearch;
-//            uint32_t pos = infer(keyListInt[i]);
-//            sum+=pos;
-//            //    Accuracy Test
+    auto t1 = Clock::now();
+    for (j = 0; j < NUM_ITERS; ++j) {
+        for (i = 0; i < keyList.size(); ++i) {
+            keyToSearch = keyList[i];
+            key.m[0][0] = keyToSearch;
+            uint32_t pos = infer(keyListInt[i]);
+            sum += pos;
+            //    Accuracy Test
 //            if (keyListIntVal != tData[pos]) {
 //                cout << "Wrong prediction!!!!!!!!!!!" << endl;
 //                cout << "Actual Key: " << keyListIntVal << ", Predicted Key: " << tData[pos] << endl;
 //                assert(false);
 //            }
-//        }
-//    }
-//
-//    auto t2 = Clock::now();
-//    cout << "sum = " << sum << endl;
-//    std::cout << "Time: "
-//              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
-//              << " nanoseconds" << std::endl;
+        }
+    }
+
+    auto t2 = Clock::now();
+    cout << "sum = " << sum << endl;
+    std::cout << "Time: "
+              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
+              << " nanoseconds" << std::endl;
+    cout << "BSearch: " << bsearchCnt << " BTree: " << btreeCnt << endl;
     return 0;
 }
