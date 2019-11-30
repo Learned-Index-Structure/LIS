@@ -93,7 +93,7 @@ int solveSecondLayer() {
                            maxIndex);
 //        cout << " Binary Search " << midPoint << ", Key: " <<keyListIntVal<< endl;
 //        return binarySearchBranchless<uint64_t>(tData, keyListIntVal, midPoint, threshold);
-    return binarySearchBranchless2<uint64_t>(tData, keyListIntVal, (midPoint + btreeErrors[modelIndex].first) < 0 ? 0: midPoint + btreeErrors[modelIndex].first,
+    return exponentialSearch<uint64_t>(tData, keyListIntVal, (midPoint + btreeErrors[modelIndex].first) < 0 ? 0: midPoint + btreeErrors[modelIndex].first,
                                              (midPoint + btreeErrors[modelIndex].second) >= tData.size() ? tData.size()-1: midPoint + btreeErrors[modelIndex].second);
 //    } else {
 ////        cout << " Btree Search " << ", Key: " <<keyListIntVal<< endl;
@@ -263,56 +263,56 @@ void validate() {
         }
     }
 }
-
-int main(int argc, char **argv) {
-    string path = "/Users/deepak/Downloads/weights/";
-    bool validateData = false;
-
-    if (validateData) {
-        cleanup(true);
-        setup(path, "maps", "100000", "128", false);
-        validate();
-        cout << "Maps Validated" << endl;
-
-        cleanup(true);
-        setup(path, "weblogs", "100000", "128", false);
-        validate();
-        cout << "Weblogs Validated" << endl;
-
-        cleanup(true);
-        setup(path, "lognormal", "100000", "128", false);
-        validate();
-        cout << "Lognormal Validated" << endl;
-    }
-
-    cleanup(true);
-    setup(path, "maps", "100000", "128", false);
-    getKeyList(tData, dataLines, maxKey);
-    uint64_t sum = 0;
-    double keyToSearch;
-    int i, j;
-
-    auto t1 = Clock::now();
-    for (j = 0; j < NUM_ITERS; ++j) {
-        for (i = 0; i < keyList.size(); ++i) {
-            keyToSearch = keyList[i];
-            key.m[0][0] = keyToSearch;
-            uint32_t pos = infer(keyListInt[i]);
-            sum += pos;
-            //    Accuracy Test
-//            if (keyListIntVal != tData[pos]) {
-//                cout << "Wrong prediction!!!!!!!!!!!" << endl;
-//                cout << "Actual Key: " << keyListIntVal << ", Predicted Key: " << tData[pos] << endl;
-//                assert(false);
-//            }
-        }
-    }
-
-    auto t2 = Clock::now();
-    cout << "sum = " << sum << endl;
-    std::cout << "Time: "
-              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
-              << " nanoseconds" << std::endl;
-    cout << "BSearch: " << bsearchCnt << " BTree: " << btreeCnt << endl;
-    return 0;
-}
+//
+//int main(int argc, char **argv) {
+//    string path = "/Users/deepak/Downloads/weights/";
+//    bool validateData = true;
+//
+//    if (validateData) {
+//        cleanup(true);
+//        setup(path, "maps", "100000", "128", false);
+//        validate();
+//        cout << "Maps Validated" << endl;
+//
+//        cleanup(true);
+//        setup(path, "weblogs", "100000", "128", false);
+//        validate();
+//        cout << "Weblogs Validated" << endl;
+//
+//        cleanup(true);
+//        setup(path, "lognormal", "100000", "128", false);
+//        validate();
+//        cout << "Lognormal Validated" << endl;
+//    }
+//
+//    cleanup(true);
+//    setup(path, "maps", "100000", "128", false);
+//    getKeyList(tData, dataLines, maxKey);
+//    uint64_t sum = 0;
+//    double keyToSearch;
+//    int i, j;
+//
+//    auto t1 = Clock::now();
+//    for (j = 0; j < NUM_ITERS; ++j) {
+//        for (i = 0; i < keyList.size(); ++i) {
+//            keyToSearch = keyList[i];
+//            key.m[0][0] = keyToSearch;
+//            uint32_t pos = infer(keyListInt[i]);
+//            sum += pos;
+//            //    Accuracy Test
+////            if (keyListIntVal != tData[pos]) {
+////                cout << "Wrong prediction!!!!!!!!!!!" << endl;
+////                cout << "Actual Key: " << keyListIntVal << ", Predicted Key: " << tData[pos] << endl;
+////                assert(false);
+////            }
+//        }
+//    }
+//
+//    auto t2 = Clock::now();
+//    cout << "sum = " << sum << endl;
+//    std::cout << "Time: "
+//              << (chrono::duration<int64_t, std::nano>(t2 - t1).count() / NUM_ITERS) / NO_OF_KEYS
+//              << " nanoseconds" << std::endl;
+//    cout << "BSearch: " << bsearchCnt << " BTree: " << btreeCnt << endl;
+//    return 0;
+//}
