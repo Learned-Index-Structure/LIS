@@ -89,8 +89,10 @@ template<bool isModel>
 inline
 int solveSecondLayer() {
 //    if (isModel) {
-    midPoint = (uint32_t) (((key.m[0][0] * linearModels[modelIndex].first) + linearModels[modelIndex].second) *
+    midPoint = (int32_t) (((key.m[0][0] * linearModels[modelIndex].first) + linearModels[modelIndex].second) *
                            maxIndex);
+    midPoint = midPoint < 0 ? 0 : midPoint;
+    midPoint = midPoint > tData.size()-1 ? tData.size() - 1 : midPoint;
 //        cout << " Binary Search " << midPoint << ", Key: " <<keyListIntVal<< endl;
 //        return binarySearchBranchless<uint64_t>(tData, keyListIntVal, midPoint, threshold);
     return exponentialSearch<uint64_t>(tData, keyListIntVal, midPoint, btreeErrors[modelIndex].first, btreeErrors[modelIndex].second);
@@ -265,7 +267,7 @@ void validate() {
 
 int main(int argc, char **argv) {
     string path = "/home/umair/Downloads/weights/";
-    bool validateData = true;
+    bool validateData = false;
 
     if (validateData) {
         cleanup(true);

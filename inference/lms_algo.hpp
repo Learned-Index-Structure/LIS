@@ -7,11 +7,15 @@
 #include <vector>
 #include <stdint.h>
 #include <cassert>
-#include <algorithm>
 
 #pragma once
 
 using namespace std;
+
+template <typename T>
+inline T _min(T left, T right) {
+    return left < right ? left : right;
+}
 
 // power of 2 at most x, undefined for x == 0
 inline uint32_t bsr(uint32_t x) {
@@ -68,30 +72,29 @@ inline uint32_t binarySearchBranchless2(const std::vector<T> &arr, const T key, 
 
 
 template<typename T>
-inline int exponentialSearch(const std::vector<T> &arr, const T key, uint32_t midPoint, uint32_t leftMargin, uint32_t rightMargin)
+inline int exponentialSearch(const std::vector<T> &arr, const T key, int32_t midPoint, int32_t leftMargin, int32_t rightMargin)
 {
 
-    uint32_t leftN = midPoint - leftMargin;
-    uint32_t rightN = rightMargin - midPoint;
-
-    uint32_t start, end;
+    int32_t start, end;
+    leftMargin = (midPoint + leftMargin) < 0 ? midPoint*(-1) : leftMargin;
+    rightMargin = (midPoint + rightMargin) > arr.size() - 1 ? arr.size() - midPoint - 1: rightMargin;
 
     //start exponential search from mid in both the directions
-    uint32_t i = 1;
+    int32_t i = 1;
     if (arr[midPoint] == key) {
         return midPoint;
     } else if (arr[midPoint] < key) {
-        while (arr[midPoint + i] <= key) {
+        while (midPoint + i < arr.size() && arr[midPoint + i] <= key) {
             i *= 2;
         }
-        start = midPoint + (i / 2);
-        end = midPoint + min(i, rightN);
+        start = midPoint + _min((i / 2), rightMargin);
+        end = midPoint + _min(i, rightMargin);
     } else {
-        while (arr[midPoint - i] >= key) {
+        while (midPoint - i >= 0 && arr[midPoint - i] >= key) {
             i *= 2;
         }
-        start = midPoint - max(i, leftN);
-        end = midPoint - (i/2);
+        start = midPoint - _min(i, leftMargin * (-1));
+        end = midPoint - _min((i/2), leftMargin * (-1));
     }
 
     //  Call binary search for the found range.
