@@ -7,6 +7,7 @@
 #include <vector>
 #include <stdint.h>
 #include <cassert>
+#include <algorithm>
 
 #pragma once
 
@@ -76,7 +77,7 @@ inline int exponentialSearch(const std::vector<T> &arr, const T key, uint32_t mi
     uint32_t start, end;
 
     //start exponential search from mid in both the directions
-    int i = 1;
+    uint32_t i = 1;
     if (arr[midPoint] == key) {
         return midPoint;
     } else if (arr[midPoint] < key) {

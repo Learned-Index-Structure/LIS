@@ -265,7 +265,7 @@ void validate() {
 
 int main(int argc, char **argv) {
     string path = "/home/umair/Downloads/weights/";
-    bool validateData = false;
+    bool validateData = true;
 
     if (validateData) {
         cleanup(true);
