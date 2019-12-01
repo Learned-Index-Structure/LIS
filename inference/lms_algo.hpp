@@ -67,26 +67,34 @@ inline uint32_t binarySearchBranchless2(const std::vector<T> &arr, const T key, 
 
 
 template<typename T>
-inline int exponentialSearch(const std::vector<T> &arr, const T key, uint32_t start, uint32_t end)
+inline int exponentialSearch(const std::vector<T> &arr, const T key, uint32_t midPoint, uint32_t leftMargin, uint32_t rightMargin)
 {
-    int n = end - start + 1;
-    // If x is present at firt location itself
 
-//    if(arr[start] == key)
-//        return start;
+    uint32_t leftN = midPoint - leftMargin;
+    uint32_t rightN = rightMargin - midPoint;
 
-    // Find range for binary search by
-    // repeated doubling
+    uint32_t start, end;
+
+    //start exponential search from mid in both the directions
     int i = 1;
-    while (i < n && arr[i + start] <= key)
-        i = i*2;
-
-//    int initialDiff = end - start;
-//    int finalDiff = min(i, n) - (i/2);
-//    cout<<"reduced space by "<<initialDiff - finalDiff<<endl;
+    if (arr[midPoint] == key) {
+        return midPoint;
+    } else if (arr[midPoint] < key) {
+        while (arr[midPoint + i] <= key) {
+            i *= 2;
+        }
+        start = midPoint + (i / 2);
+        end = midPoint + min(i, rightN);
+    } else {
+        while (arr[midPoint - i] >= key) {
+            i *= 2;
+        }
+        start = midPoint - max(i, leftN);
+        end = midPoint - (i/2);
+    }
 
     //  Call binary search for the found range.
-    return binarySearchBranchless2<uint64_t>(arr, key, start + (i/2), start + min(i, n));
+    return binarySearchBranchless2<uint64_t>(arr, key, start, end);
 }
 
 #endif //INFERENCE_LMS_ALGO_HPP
