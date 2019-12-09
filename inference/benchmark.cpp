@@ -1,5 +1,3 @@
-// g++ -O3 -mavx2 -lpthread -std=c++11 -isystem benchmark/include -Lbenchmark/build/src -lbenchmark -o bench benchmark.cpp && ./bench
-// g++-8 -o bench -O3 -mavx -pthread benchmark.cpp -Lbenchmark/build/src -lbenchmark && ./bench
 // g++ -O3 -mavx2 -lpthread -std=c++11 -isystem -Lbenchmark/include  -lbenchmark -o bench benchmark.cpp && ./bench
 
 #include <iostream>
